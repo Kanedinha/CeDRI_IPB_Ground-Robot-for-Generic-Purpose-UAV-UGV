@@ -1,0 +1,412 @@
+﻿FN Clarivate Analytics Web of Science
+VR 1.0
+PT C
+AU Maughan, B
+   Mustafa, A
+   Zane, R
+   Wang, HJ
+AF Maughan, Brooks
+   Mustafa, Asif
+   Zane, Regan
+   Wang, Hongjie
+GP IEEE
+TI Hot Swapping Analysis and System Operation of Series Connected
+   Converters in Active Battery Reconditioning Systems for Second Life
+   Battery Applications
+SO 2022 IEEE 23RD WORKSHOP ON CONTROL AND MODELING FOR POWER ELECTRONICS
+   (COMPEL 2022)
+SE IEEE Workshop on Control and Modeling for Power Electronics
+CT IEEE 23rd Workshop on Control and Modeling for Power Electronics
+   (COMPEL)
+CY JUN 20-23, 2022
+CL Tel Aviv, ISRAEL
+SP IEEE, IEEE Power Elect Soc, Ben Gur Univ Negev, Ctr Power Elect & Mixed Signal IC, Typhoon Hil, Hil Acad, Payton Planar, Pazy, TDK, SolarEdge
+RI Wang, Hongjie/AAO-7405-2021
+OI Wang, Hongjie/0000-0002-0162-7812
+SN 2151-0997
+BN 978-1-6654-1081-6
+PY 2022
+DI 10.1109/COMPEL53829.2022.9830014
+UT WOS:000860291900065
+ER
+
+PT J
+AU Hwu, KI
+   Liu, HP
+AF Hwu, Kuo-Ing
+   Liu, Hsiu-Pang
+TI Series-type charger with output voltage automatically regulated and hot
+   swap
+SO INTERNATIONAL JOURNAL OF CIRCUIT THEORY AND APPLICATIONS
+OI Hwu, K. I./0000-0002-3344-4842
+SN 0098-9886
+EI 1097-007X
+PD APR
+PY 2019
+VL 47
+IS 4
+BP 633
+EP 639
+DI 10.1002/cta.2597
+UT WOS:000465104000011
+ER
+
+PT J
+AU Lim, NG
+   Kim, JY
+   Lee, S
+AF Lim, Nam-Gyu
+   Kim, Jae-Yeol
+   Lee, Seongjun
+TI Estimation of the Hot Swap Circulation Current of a Multiple Parallel
+   Lithium Battery System with an Artificial Neural Network Model
+SO ELECTRONICS
+EI 2079-9292
+PD JUN
+PY 2021
+VL 10
+IS 12
+AR 1448
+DI 10.3390/electronics10121448
+UT WOS:000665888200001
+ER
+
+PT C
+AU Ma, Z
+   Yi, XQ
+   Li, W
+   Gao, F
+   Yu, FJ
+AF Ma, Zhan
+   Yi, Xiuqing
+   Li, Wei
+   Gao, Feng
+   Yu, Fujia
+GP IEEE
+TI Sorting Selection Balancing Control for the Modular Multilevel DC/DC
+   Converter in Battery Swapping Stations
+SO 2021 IEEE ENERGY CONVERSION CONGRESS AND EXPOSITION (ECCE)
+SE IEEE Energy Conversion Congress and Exposition
+CT 13th IEEE Energy Conversion Congress and Exposition (IEEE ECCE)
+CY OCT 10-14, 2021
+CL ELECTR NETWORK
+SP IEEE, ST Microelectron, OPAL RT Technologies, GMW Associates, IEEE Ind Applicat Soc, IEEE Power Elect Soc
+RI Ma, Zhan/ADJ-5915-2022
+OI Ma, Zhan/0000-0001-9495-980X
+SN 2329-3721
+BN 978-1-7281-5135-9
+PY 2021
+BP 1730
+EP 1734
+DI 10.1109/ECCE47101.2021.9595936
+UT WOS:000805434401139
+ER
+
+PT J
+AU Lee, S
+   Kim, J
+AF Lee, Seongjun
+   Kim, Jonghoon
+TI Inrush current estimation and hot-swapping for safe parallel battery
+   pack
+SO INTERNATIONAL JOURNAL OF ELECTRONICS
+SN 0020-7217
+EI 1362-3060
+PD OCT 2
+PY 2020
+VL 107
+IS 10
+BP 1609
+EP 1624
+DI 10.1080/00207217.2020.1727031
+EA FEB 2020
+UT WOS:000514974500001
+ER
+
+PT C
+AU Takehara, K
+   Nishijima, K
+   Nakao, F
+   Sakai, E
+AF Takehara, Kazuo
+   Nishijima, Kimihiro
+   Nakao, Fumiaki
+   Sakai, Eiji
+GP IEEE
+TI Independent controlled Hot-plug Switches for Parallel Operation of
+   Reused Battery Strings
+SO 10TH IEEE INTERNATIONAL CONFERENCE ON RENEWABLE ENERGY RESEARCH AND
+   APPLICATIONS (ICRERA 2021)
+SE International Conference on Renewable Energy Research and Applications
+CT 10th IEEE International Conference on Renewable Energy Research and
+   Applications (ICRERA)
+CY SEP 26-29, 2021
+CL Istanbul, TURKEY
+SP IEEE, IjSmartGrid, IcSmartGrid, TMEIC, Honda R & D Co Ltd, Nisantasi Univ, Int Journal Renewable Energy Res, Nagasaki Univ, Nagasaki Inst Appl Sci, Gazi Univ, IEEE Ind Applicat Soc, IES
+SN 2377-6897
+BN 978-1-6654-4524-5
+PY 2021
+BP 175
+EP 179
+DI 10.1109/ICRERA52334.2021.9598643
+UT WOS:000761616700028
+ER
+
+PT C
+AU Lai, C
+   Chau, MT
+   Thai, R
+   Souvannakoumane, S
+   Watagoda, C
+   Oda, K
+   Robinson, S
+   Razungles, GG
+   Hoang, M
+   Dobbs, S
+   Yu, Z
+AF Lai, Christopher
+   Chau, Minh Tri
+   Thai, Ryan
+   Souvannakoumane, Sandor
+   Watagoda, Chathurya
+   Oda, Kaye
+   Robinson, Shanthi
+   Razungles, Gabriel Gourmet
+   Hoang, Maggie
+   Dobbs, Steven
+   Yu, Zhen
+GP IEEE
+TI Methods of Automating Power Swapping Mechanisms for Extending UAV Flight
+   Missions
+SO 2023 WIRELESS TELECOMMUNICATIONS SYMPOSIUM, WTS
+SE Wireless Telecommunications Symposium
+CT 22nd Annual Wireless Telecommunications Symposium (WTS) - Global
+   Wireless Communications - Now and in the Future
+CY APR 19-21, 2023
+CL ELECTR NETWORK
+OI Yu, Jenny/0000-0002-3556-3204
+SN 1934-5070
+BN 978-1-6654-9092-4
+PY 2023
+DI 10.1109/WTS202356685.2023.10131699
+UT WOS:001009205100004
+ER
+
+PT J
+AU Abbas, M
+   Cho, I
+   Kim, J
+AF Abbas, Mazhar
+   Cho, Inho
+   Kim, Jonghoon
+TI Scalable constrained attributes/issues about risk, reliability and
+   optimization in large scale battery pack
+SO JOURNAL OF ENERGY STORAGE
+EI 2352-152X
+PD JUL
+PY 2021
+VL 39
+AR 102632
+DI 10.1016/j.est.2021.102632
+EA MAY 2021
+UT WOS:000663786100005
+ER
+
+PT C
+AU La, PH
+   Choi, SJ
+AF La, Phuong-Ha
+   Choi, Sung-Jin
+GP IEEE
+TI Combined Equalizer Based on Switch-matrix and Bi-directional Converter
+   for Parallel-Connected Battery Packs in Data-Center or Telecommunication
+SO 2021 INTERNATIONAL SYMPOSIUM ON ELECTRICAL AND ELECTRONICS ENGINEERING
+   (ISEE 2021)
+SE International Symposium on Electrical and Electronics Engineering
+CT International Symposium on Electrical and Electronics Engineering (ISEE)
+CY APR 15-16, 2021
+CL Ho Chi Minh City, VIETNAM
+SP IEEE, IEEE Vietnam Sect, ASIC Technologies, BK TP HCM, Ho Chi Minh City Univ Technol, Fac Elect & Elect Engn
+SN 2378-3907
+BN 978-1-6654-1487-6
+PY 2021
+BP 244
+EP 248
+DI 10.1109/ISEE51682.2021.9418704
+UT WOS:000676178800047
+ER
+
+PT J
+AU Guetta, Y
+   Shapiro, A
+AF Guetta, Yoad
+   Shapiro, Amir
+TI On-Board Physical Battery Replacement System and Procedure for Drones
+   During Flight
+SO IEEE ROBOTICS AND AUTOMATION LETTERS
+RI ; Shapiro, Amir/F-1632-2012
+OI Guetta, Yoad/0000-0001-6367-6794; Shapiro, Amir/0000-0001-9557-301X
+SN 2377-3766
+PD OCT
+PY 2022
+VL 7
+IS 4
+BP 9755
+EP 9762
+DI 10.1109/LRA.2022.3190077
+UT WOS:000831182500058
+ER
+
+PT C
+AU Chung, YY
+   Liang, TJ
+   Tseng, WJ
+   Liu, JH
+AF Chung, Yi-Yuan
+   Liang, Tsorng-Juu
+   Tseng, Wei-Jing
+   Liu, Jwo-Hann
+GP IEEE
+TI Voltage Clamping Balance for Charging/Discharging Battery Module
+SO 2019 10TH INTERNATIONAL CONFERENCE ON POWER ELECTRONICS AND ECCE ASIA
+   (ICPE 2019 - ECCE ASIA)
+CT 10th International Conference on Power Electronics and ECCE Asia (ICPE -
+   ECCE Asia)
+CY MAY 27-31, 2019
+CL Busan, SOUTH KOREA
+SP Korean Inst Power Elect, IEEE Power Elect Soc, IEEE Ind Applicat Soc, PEMC Council, EPE
+BN 978-89-5708-313-0
+PY 2019
+BP 680
+EP 687
+UT WOS:000589400300064
+ER
+
+PT C
+AU Bailey, D
+   Hutto, K
+   Wallace, P
+   El-Shahat, A
+   Qian, J
+   Mageed, HMA
+AF Bailey, David
+   Hutto, Kaleb
+   Wallace, Peter
+   El-Shahat, Adel
+   Qian, Jason
+   Mageed, Hala M. Abdel
+GP IEEE
+TI Active Battery Management System for Electric Longboard
+SO 2023 IEEE IAS GLOBAL CONFERENCE ON RENEWABLE ENERGY AND HYDROGEN
+   TECHNOLOGIES, GLOBCONHT
+CT IEEE IAS Global Conference on Renewable Energy and Hydrogen Technologies
+   (GlobConHT)
+CY MAR 11-12, 2023
+CL Maldives Natl Univ, Male, MALDIVES
+SP IEEE IAS
+HO Maldives Natl Univ
+BN 979-8-3503-3211-7
+PY 2023
+AR 375
+DI 10.1109/GLOBCONHT56829.2023.10087575
+UT WOS:000987215300087
+ER
+
+PT C
+AU Mersha, AY
+   Reiling, M
+   Meijering, R
+AF Mersha, Abeje Y.
+   Reiling, Mark
+   Meijering, Rene
+GP IEEE
+TI Towards Long-term Autonomy for UAS
+SO 2020 INTERNATIONAL CONFERENCE ON UNMANNED AIRCRAFT SYSTEMS (ICUAS'20)
+SE International Conference on Unmanned Aircraft Systems
+CT International Conference on Unmanned Aircraft Systems (ICUAS)
+CY SEP 01-04, 2020
+CL Athens, GREECE
+SP IEEE, IEEE CSS, IEEE Robot & Automat Soc, MCA, ICUAS Assoc, Univ Denver, Univ Denver, Daniel Felix Ritchie Sch Engn & Comp Sci, Tech Univ Crete, Sch Prod Engn & Management, Democritus Univ Thrace, NYU Abu Dhabi, Aristotle Univ Thessaloniki, Dept Mech Engn, Lab Fluid Mech & Trubomachinery, ALTUS, DRONE NODES, Journal Unmanned Vehicle Syst
+SN 2373-6720
+BN 978-1-7281-4278-4
+PY 2020
+BP 517
+EP 522
+DI 10.1109/icuas48674.2020.9213907
+UT WOS:000612041300067
+ER
+
+PT J
+AU Rauf, AM
+   Abdel-Monem, M
+   Geury, T
+   Hegazy, O
+AF Rauf, Abdul Mannan
+   Abdel-Monem, Mohamed
+   Geury, Thomas
+   Hegazy, Omar
+TI A Review on Multilevel Converters for Efficient Integration of Battery
+   Systems in Stationary Applications
+SO ENERGIES
+OI Hegazy, Omar/0000-0002-8650-7341
+EI 1996-1073
+PD MAY 16
+PY 2023
+VL 16
+IS 10
+AR 4133
+DI 10.3390/en16104133
+UT WOS:000997158100001
+ER
+
+PT J
+AU Amenedo, JLR
+   Gomez, SA
+   Alonso-Martinez, J
+   De Armas, MG
+AF Amenedo, Jose Luis Rodriguez
+   Gomez, Santiago Arnaltes
+   Alonso-Martinez, Jaime
+   De Armas, Marcial Gonzalez
+TI Grid-Forming Converters Control Based on the Reactive Power
+   Synchronization Method for Renewable Power Plants
+SO IEEE ACCESS
+RI Alonso-Martinez, Jaime/Z-5787-2019; Gómez, Santiago/JFA-6171-2023;
+   ARNALTES, SANTIAGO/N-6897-2014
+OI Alonso-Martinez, Jaime/0000-0001-5729-3498; RODRIGUEZ, JOSE
+   LUIS/0000-0002-0585-4596; Gonzalez de Armas,
+   Marcial/0000-0002-6046-2405; ARNALTES, SANTIAGO/0000-0002-9226-2387
+SN 2169-3536
+PY 2021
+VL 9
+BP 67989
+EP 68007
+DI 10.1109/ACCESS.2021.3078078
+UT WOS:000649567300001
+ER
+
+PT J
+AU Shaghaghi, V
+   Palma, GM
+   Benenti, G
+AF Shaghaghi, Vahid
+   Palma, G. Massimo
+   Benenti, Giuliano
+TI Extracting work from random collisions: A model of a quantum heat engine
+SO PHYSICAL REVIEW E
+RI Benenti, Giuliano/C-4126-2008; Palma, G.Massimo/A-8286-2010
+OI Benenti, Giuliano/0000-0002-0510-0524; Palma,
+   G.Massimo/0000-0001-7009-4573; Shaghaghi, Vahid/0000-0002-0587-9777
+SN 2470-0045
+EI 2470-0053
+PD MAR 1
+PY 2022
+VL 105
+IS 3
+AR 034101
+DI 10.1103/PhysRevE.105.034101
+UT WOS:000766299300002
+PM 35428074
+ER
+
+EF
