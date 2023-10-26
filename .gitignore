@@ -1,0 +1,12 @@
+SW/**/build/**
+SW/**/node_modules/**
+SW/**/managed_components/**
+SW/**/.devcontainer/devcontainer.json
+SW/**/.devcontainer/Dockerfile
+SW/**/.vscode/**
+package-lock.json
+package.json
+SW/**/espressif__mdns/**
+SW/**/dependencies.lock
+SW/**/**/main/build/CMakeCache.txt
+SW/**/**/main/build/**
