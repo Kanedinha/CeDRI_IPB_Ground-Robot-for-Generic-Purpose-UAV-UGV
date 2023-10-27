@@ -1,0 +1,7 @@
+não sei por que diachos o VSCode começa a bugar quando começa 
+abrir várias vezes o app no ubuntu 20.04 (22.04 wins \o/)
+
+aqui ta o comando que arruma o VSCode temporariamente
+
+rm -rf "$HOME/.config/Code/GPUCache"
+
