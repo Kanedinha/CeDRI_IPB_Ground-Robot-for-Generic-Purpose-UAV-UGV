@@ -50,7 +50,7 @@
 #include "esp_log.h"
 #include "soc/rtc_wdt.h"
 
-// #define DEBUG
+#define DEBUG
 
 #define ENCODER_A GPIO_NUM_25
 #define ENCODER_B GPIO_NUM_26
@@ -71,6 +71,7 @@ long long int diff = 0;
 #endif
 
 const char *TAG = "CeDRI";
+
 uint8_t sig_a = 0, sig_b = 0, sig_ant_a = 0, sig_ant_b = 0;
 uint8_t dir_rot = 0;
 uint16_t angle = 0;
@@ -83,13 +84,22 @@ const uint8_t enc_table[16] = {ENCODER_STOP, COUNTER_CLOCKWISE, CLOCKWISE, ENCOD
 TaskHandle_t Motor_Direction_Handle = NULL;
 TaskHandle_t Encoder_Read_Handle = NULL;
 
-// static QueueHandle_t gpio_evt_queue = NULL;
+// QueueHandle_t encoderDataQueue = NULL;
 
 void IRAM_ATTR encoder_isr_handler(void *arg)
 {
     sig_a = gpio_get_level(ENCODER_A);
     sig_b = gpio_get_level(ENCODER_B);
-    xTaskResumeFromISR(Encoder_Read_Handle);
+    if ((sig_a != sig_ant_a) || (sig_b != sig_ant_b))
+    {
+        dir_rot = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
+        sig_ant_a = sig_a;
+        sig_ant_b = sig_b;
+        // ESP_LOGI(TAG, "Enc A: %d - Enc B: %d - wise: %d", sig_a, sig_b, enc_table[dir_rot]);
+    }
+    else{
+        
+    }
 }
 
 void Motor_Direction(void *args)
@@ -98,42 +108,31 @@ void Motor_Direction(void *args)
 
     while (1)
     {
+        ESP_LOGI(TAG, "Enc A: %d - Enc B: %d - wise: %d", sig_a, sig_b, enc_table[dir_rot]);
         gpio_set_level(MOTOR_A1, dir);
         gpio_set_level(MOTOR_A2, !dir);
         dir = !dir;
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         gpio_set_level(MOTOR_A1, 0);
         gpio_set_level(MOTOR_A2, 0);
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
 void Encoder_Read(void *args)
 {
+
     while (1)
     {
+        Timer1 = esp_timer_get_time();
+        sig_a = gpio_get_level(ENCODER_A);
+        sig_b = gpio_get_level(ENCODER_B);
 
-        if ((sig_a != sig_ant_a) || (sig_b != sig_ant_b))
-        {
-            dir_rot = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
-#ifndef DEBUG
-            ESP_LOGI(TAG, "Enc A: %d - Enc B: %d - wise: %d", sig_a, sig_b, enc_table[dir_rot]);
-#endif
-            sig_ant_a = sig_a;
-            sig_ant_b = sig_b;
-
-#ifdef DEBUG
-            Timer2 = esp_timer_get_time();
-            diff = Timer2 - Timer1;
-            ESP_LOGI(TAG, "Sample period: %lld μs", diff);
-            Timer1 = esp_timer_get_time();
-#endif
-        }
-        else{
-            vTaskSuspend(NULL);
-        }
-
+        ets_delay_us(20);
+        Timer2 = esp_timer_get_time();
+        diff = Timer2 - Timer1;
+        ESP_LOGI(TAG, "Sample period: %lld μs", diff);
     }
 }
 
@@ -148,12 +147,12 @@ void app_main(void)
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(ENCODER_A, encoder_isr_handler, NULL);
-    gpio_isr_handler_add(ENCODER_B, encoder_isr_handler, NULL);
+    // gpio_install_isr_service(0);
+    // gpio_isr_handler_add(ENCODER_A, encoder_isr_handler, NULL);
+    // gpio_isr_handler_add(ENCODER_B, encoder_isr_handler, NULL);
 
     xTaskCreate(Motor_Direction, "MotorDirection", 4096, NULL, 10, &Motor_Direction_Handle);
-    xTaskCreate(Encoder_Read, "Encoder_Read", 4096, NULL, 10, &Encoder_Read_Handle);
+    xTaskCreate(Encoder_Read, "Encoder_Read", 4096, NULL, 20, &Encoder_Read_Handle);
 
     while (1)
     {
