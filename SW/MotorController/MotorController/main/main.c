@@ -57,9 +57,9 @@
 #define MOTOR_A1 GPIO_NUM_16
 #define MOTOR_A2 GPIO_NUM_27
 
-#define ENCODER_STOP 0
+#define COUNTER_CLOCKWISE 0
 #define CLOCKWISE 1
-#define COUNTER_CLOCKWISE 2
+#define ENCODER_STOP 2
 #define ENCODER_ERROR 3
 
 #define ESP_INTR_FLAG_DEFAULT 0
@@ -74,7 +74,10 @@ const char *TAG = "CeDRI";
 
 uint8_t sig_a = 0, sig_b = 0, sig_ant_a = 0, sig_ant_b = 0;
 uint8_t dir_rot = 0;
-uint16_t angle = 0;
+int16_t pulses = 0;
+float angle = 0;
+
+const float ang_per_pulse = 0.1607;
 
 const uint8_t enc_table[16] = {ENCODER_STOP, COUNTER_CLOCKWISE, CLOCKWISE, ENCODER_ERROR,
                                CLOCKWISE, ENCODER_STOP, ENCODER_ERROR, COUNTER_CLOCKWISE,
@@ -89,16 +92,29 @@ TaskHandle_t Encoder_Read_Handle = NULL;
 void IRAM_ATTR encoder_isr_handler(void *arg)
 {
     sig_a = gpio_get_level(ENCODER_A);
-    sig_b = gpio_get_level(ENCODER_B);
-    if ((sig_a != sig_ant_a) || (sig_b != sig_ant_b))
+    if (sig_a && !sig_ant_a)
     {
-        dir_rot = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
-        sig_ant_a = sig_a;
-        sig_ant_b = sig_b;
-        // ESP_LOGI(TAG, "Enc A: %d - Enc B: %d - wise: %d", sig_a, sig_b, enc_table[dir_rot]);
+        sig_b = gpio_get_level(ENCODER_B);
+
+        if (!sig_b && dir_rot)
+        {
+            dir_rot = COUNTER_CLOCKWISE; // counterclock wise
+        }
+        else if (sig_b && !dir_rot)
+        {
+            dir_rot = CLOCKWISE; // clock wise
+        }
     }
-    else{
-        
+
+    sig_ant_a = sig_a;
+
+    if (!dir_rot)
+    {
+        pulses++;
+    }
+    else
+    {
+        pulses--;
     }
 }
 
@@ -108,15 +124,32 @@ void Motor_Direction(void *args)
 
     while (1)
     {
-        ESP_LOGI(TAG, "Enc A: %d - Enc B: %d - wise: %d", sig_a, sig_b, enc_table[dir_rot]);
-        gpio_set_level(MOTOR_A1, dir);
-        gpio_set_level(MOTOR_A2, !dir);
+        while (pulses < 2300)
+        {
+            gpio_set_level(MOTOR_A1, dir);
+            gpio_set_level(MOTOR_A2, !dir);
+            // vTaskDelay(pdMS_TO_TICKS(50));
+            // gpio_set_level(MOTOR_A1, 1);
+            // gpio_set_level(MOTOR_A2, 1);
+            // vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        gpio_set_level(MOTOR_A1, 1);
+        gpio_set_level(MOTOR_A2, 1);
+        vTaskDelay(pdMS_TO_TICKS(500));
         dir = !dir;
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        gpio_set_level(MOTOR_A1, 0);
-        gpio_set_level(MOTOR_A2, 0);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        while (pulses > 600)
+        {
+            gpio_set_level(MOTOR_A1, dir);
+            gpio_set_level(MOTOR_A2, !dir);
+            // vTaskDelay(pdMS_TO_TICKS(50));
+            // gpio_set_level(MOTOR_A1, 1);
+            // gpio_set_level(MOTOR_A2, 1);
+            // vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        gpio_set_level(MOTOR_A1, 1);
+        gpio_set_level(MOTOR_A2, 1);
+        vTaskDelay(pdMS_TO_TICKS(500));
+        dir = !dir;
     }
 }
 
@@ -125,14 +158,9 @@ void Encoder_Read(void *args)
 
     while (1)
     {
-        Timer1 = esp_timer_get_time();
-        sig_a = gpio_get_level(ENCODER_A);
-        sig_b = gpio_get_level(ENCODER_B);
-
-        ets_delay_us(20);
-        Timer2 = esp_timer_get_time();
-        diff = Timer2 - Timer1;
-        ESP_LOGI(TAG, "Sample period: %lld μs", diff);
+        angle = pulses * ang_per_pulse;
+        ESP_LOGI(TAG, "wise: %d - pulses: %d - angle: %.2f", dir_rot, pulses, angle);
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -147,8 +175,15 @@ void app_main(void)
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 
-    // gpio_install_isr_service(0);
-    // gpio_isr_handler_add(ENCODER_A, encoder_isr_handler, NULL);
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.pin_bit_mask = (1ULL << MOTOR_A1) | (1ULL << MOTOR_A2);
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    gpio_config(&io_conf);
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(ENCODER_A, encoder_isr_handler, NULL);
     // gpio_isr_handler_add(ENCODER_B, encoder_isr_handler, NULL);
 
     xTaskCreate(Motor_Direction, "MotorDirection", 4096, NULL, 10, &Motor_Direction_Handle);
