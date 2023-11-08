@@ -63,14 +63,14 @@ bool sig_ant_b = 0;
 float angle = 0;
 const float ang_per_pulse = 1;
 
-float Kp = 0.1;
-float Ki = 0.01;
-float Kd = 0.001;
+float Kp = 0.0001;
+float Ki = 0.0001;
+float Kd = 0.0001;
 
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = 180;
+float set_point = 500;
 
 Ticker timer;
 
@@ -90,8 +90,6 @@ void timer_isr()
   sig_ant_b = sig_b;
 
   pulses += enc_table[dir_rot];
-  // Serial.print(" pulses: ");
-  // Serial.println(pulses);
 }
 
 void setup()
@@ -112,40 +110,44 @@ void setup()
 
 void loop()
 {
-  float ang = pulses * ang_per_pulse;
+  // float ang = pulses;
 
-  float erro = set_point - ang;
-  integral += erro;
-  derivative = erro - previous_error;
-  int16_t output = Kp * erro + Ki * integral + Kd * derivative;
+  // float erro = set_point - ang;
+  // integral += erro;
+  // derivative = erro - previous_error;
+  // int16_t output = 0;
 
-  if (output > 0)
-  {
-    if (output > 255)
-    {
-      output = 255;
-    }
-    ledcWrite(MOTOR_A, output);
-    ledcWrite(MOTOR_B, 0);
+  // if (Kp * erro + Ki * integral + Kd * derivative > 255)
+  // {
+  //   output = 255;
+  // }
+  // else if (Kp * erro + Ki * integral + Kd * derivative < -255)
+  // {
+  //   output = -255;
+  // }
+  // else
+  // {
+  //   output = Kp * erro + Ki * integral + Kd * derivative;
+  // }
+  // Serial.print(" pulses: ");
+  // Serial.print(pulses);
+  // Serial.print(" erro: ");
+  // Serial.println(erro);
 
-    // sentido horario
-  }
-  else
-  {
-    if (abs(output) > 255)
-    {
-      output = 255;
-    }
-    else
-    {
-      output = abs(output);
-    }
-    ledcWrite(MOTOR_A, 0);
-    ledcWrite(MOTOR_B, output);
-    // sentido anti horario
-  }
-  Serial.print("out: ");
-  Serial.println(output);
+  // if (output > 0)
+  // {
 
-  previous_error = erro;
+  //   ledcWrite(MOTOR_A, output);
+  //   ledcWrite(MOTOR_B, 0);
+
+  //   // sentido horario
+  // }
+  // else
+  // {
+  //   ledcWrite(MOTOR_A, 0);
+  //   ledcWrite(MOTOR_B, abs(output));
+  //   // sentido anti horario
+  // }
+
+  // previous_error = erro;
 }
