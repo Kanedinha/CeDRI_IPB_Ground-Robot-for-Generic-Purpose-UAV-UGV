@@ -40,15 +40,12 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/timers.h"
 #include "driver/gpio.h"
 #include "sdkconfig.h"
-#include <rom/ets_sys.h>.
+#include <esp32/rom/ets_sys.h>.
 #include "esp_log.h"
 #include "soc/rtc_wdt.h"
+#include "esp_timer.h"
 
 #define DEBUG
 
@@ -57,10 +54,10 @@
 #define MOTOR_A1 GPIO_NUM_16
 #define MOTOR_A2 GPIO_NUM_27
 
-#define COUNTER_CLOCKWISE 0
+#define COUNTER_CLOCKWISE -1
 #define CLOCKWISE 1
-#define ENCODER_STOP 2
-#define ENCODER_ERROR 3
+#define ENCODER_STOP 0
+#define ENCODER_ERROR 0
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
@@ -79,96 +76,32 @@ float angle = 0;
 
 const float ang_per_pulse = 0.1607;
 
-const uint8_t enc_table[16] = {ENCODER_STOP, COUNTER_CLOCKWISE, CLOCKWISE, ENCODER_ERROR,
-                               CLOCKWISE, ENCODER_STOP, ENCODER_ERROR, COUNTER_CLOCKWISE,
-                               COUNTER_CLOCKWISE, ENCODER_ERROR, ENCODER_STOP, CLOCKWISE,
-                               ENCODER_ERROR, CLOCKWISE, COUNTER_CLOCKWISE, ENCODER_ERROR};
-
-TaskHandle_t Motor_Direction_Handle = NULL;
-TaskHandle_t Encoder_Read_Handle = NULL;
+const int8_t enc_table[16] = {ENCODER_STOP, COUNTER_CLOCKWISE, CLOCKWISE, ENCODER_ERROR,
+                              CLOCKWISE, ENCODER_STOP, ENCODER_ERROR, COUNTER_CLOCKWISE,
+                              COUNTER_CLOCKWISE, ENCODER_ERROR, ENCODER_STOP, CLOCKWISE,
+                              ENCODER_ERROR, CLOCKWISE, COUNTER_CLOCKWISE, ENCODER_ERROR};
 
 // QueueHandle_t encoderDataQueue = NULL;
-
-void IRAM_ATTR encoder_isr_handler(void *arg)
+void timer_isr(void *arg)
 {
-    sig_a = gpio_get_level(ENCODER_A);
-    if (sig_a && !sig_ant_a)
-    {
-        sig_b = gpio_get_level(ENCODER_B);
+    gpio_get_level(ENCODER_A);
+    gpio_get_level(ENCODER_B);
 
-        if (!sig_b && dir_rot)
-        {
-            dir_rot = COUNTER_CLOCKWISE; // counterclock wise
-        }
-        else if (sig_b && !dir_rot)
-        {
-            dir_rot = CLOCKWISE; // clock wise
-        }
-    }
+    dir_rot = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
 
     sig_ant_a = sig_a;
+    sig_ant_b = sig_b;
 
-    if (!dir_rot)
-    {
-        pulses++;
-    }
-    else
-    {
-        pulses--;
-    }
-}
+    pulses += enc_table[dir_rot];
 
-void Motor_Direction(void *args)
-{
-    uint8_t dir = 0;
-
-    while (1)
-    {
-        while (pulses < 2300)
-        {
-            gpio_set_level(MOTOR_A1, dir);
-            gpio_set_level(MOTOR_A2, !dir);
-            // vTaskDelay(pdMS_TO_TICKS(50));
-            // gpio_set_level(MOTOR_A1, 1);
-            // gpio_set_level(MOTOR_A2, 1);
-            // vTaskDelay(pdMS_TO_TICKS(100));
-        }
-        gpio_set_level(MOTOR_A1, 1);
-        gpio_set_level(MOTOR_A2, 1);
-        vTaskDelay(pdMS_TO_TICKS(500));
-        dir = !dir;
-        while (pulses > 600)
-        {
-            gpio_set_level(MOTOR_A1, dir);
-            gpio_set_level(MOTOR_A2, !dir);
-            // vTaskDelay(pdMS_TO_TICKS(50));
-            // gpio_set_level(MOTOR_A1, 1);
-            // gpio_set_level(MOTOR_A2, 1);
-            // vTaskDelay(pdMS_TO_TICKS(100));
-        }
-        gpio_set_level(MOTOR_A1, 1);
-        gpio_set_level(MOTOR_A2, 1);
-        vTaskDelay(pdMS_TO_TICKS(500));
-        dir = !dir;
-    }
-}
-
-void Encoder_Read(void *args)
-{
-
-    while (1)
-    {
-        angle = pulses * ang_per_pulse;
-        ESP_LOGI(TAG, "wise: %d - pulses: %d - angle: %.2f", dir_rot, pulses, angle);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    ESP_LOGI(TAG, "Pulses: %d - dir: %d", pulses, dir_rot);
 }
 
 void app_main(void)
 {
     // Disable Watchdog interrupt
     gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.pin_bit_mask = (1ULL << ENCODER_A) | (1ULL << ENCODER_B);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
@@ -182,16 +115,21 @@ void app_main(void)
     io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
     gpio_config(&io_conf);
 
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(ENCODER_A, encoder_isr_handler, NULL);
-    // gpio_isr_handler_add(ENCODER_B, encoder_isr_handler, NULL);
+    sig_ant_a = gpio_get_level(ENCODER_A);
+    sig_ant_b = gpio_get_level(ENCODER_B);
 
-    xTaskCreate(Motor_Direction, "MotorDirection", 4096, NULL, 10, &Motor_Direction_Handle);
-    xTaskCreate(Encoder_Read, "Encoder_Read", 4096, NULL, 20, &Encoder_Read_Handle);
+    esp_timer_create_args_t timer_config = {
+        .callback = &timer_isr,
+        .arg = NULL,
+        .name = "timer"};
+
+    esp_timer_handle_t timer;
+    esp_timer_create(&timer_config, &timer);
+    esp_timer_start_periodic(timer, 80); // 80 microssegundos
 
     while (1)
     {
-        // Leia encoder_count para determinar a posição do motor
-        vTaskDelay(pdMS_TO_TICKS(100)); // Aguarde um curto período entre as leituras
+
+        gpio_set_level(MOTOR_A1, 1);
     }
 }
