@@ -36,6 +36,13 @@
     1 1 1 0 | -1
     1 1 1 1 |  0
 
+
+pulses 5760 -> 360º
+
+10 ms de timer pro PID
+
+counter clock wise h_ccw = 36 (37 roda começa a rodar sempre)
+clock wise h_cw = 51 (52 começa a rodar sempre)
 */
 
 #include <Arduino.h>
@@ -44,110 +51,130 @@
 
 #define ENCODER_A 25
 #define ENCODER_B 26
-#define MOTOR_A_PIN 14
-#define MOTOR_B_PIN 27
+#define MOTOR_A1_PIN 16
+#define MOTOR_A2_PIN 27
+#define MOTOR_ASPEED_PIN 14
 #define MOTOR_A 0
 #define MOTOR_B 1
 
-#define COUNTER_CLOCKWISE -1
-#define CLOCKWISE 1
-#define ENCODER_STOP 0
-#define ENCODER_ERROR 0
+#define CCW -1 // counter clockwise
+#define CW 1   // clockwise
+#define STOP 0
+#define EE 0 // encoder erro
 
-uint8_t dir_rot = 0;
+uint8_t encoder_signal = 0;
 int16_t pulses = 0;
 bool sig_a = 0;
 bool sig_b = 0;
 bool sig_ant_a = 0;
 bool sig_ant_b = 0;
 float angle = 0;
-const float ang_per_pulse = 1;
+const float ang_per_pulse = (2 * PI) / 5770;
 
-float Kp = 0.0001;
-float Ki = 0.0001;
-float Kd = 0.0001;
+const uint8_t h_cw = 61;
+const uint8_t h_ccw = 54;
+
+float Kp = 7;
+float Ki = 0;
+float Kd = 7;
 
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = 500;
+float set_point = PI;
+float erro = 0;
+float output = 0;
+float real_output = 0;
+
+uint8_t i = 0;
 
 Ticker timer;
+Ticker timer2;
 
-const int8_t enc_table[16] = {ENCODER_STOP, COUNTER_CLOCKWISE, CLOCKWISE, ENCODER_ERROR,
-                              CLOCKWISE, ENCODER_STOP, ENCODER_ERROR, COUNTER_CLOCKWISE,
-                              COUNTER_CLOCKWISE, ENCODER_ERROR, ENCODER_STOP, CLOCKWISE,
-                              ENCODER_ERROR, CLOCKWISE, COUNTER_CLOCKWISE, ENCODER_ERROR};
+const int8_t enc_table[16] = {STOP, CCW, CW, EE,
+                              CW, STOP, EE, CCW,
+                              CCW, EE, STOP, CW,
+                              EE, CW, CCW, STOP};
 
-void timer_isr()
+void enc_timer_isr()
 {
   sig_a = digitalRead(ENCODER_A);
   sig_b = digitalRead(ENCODER_B);
 
-  dir_rot = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
+  encoder_signal = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
 
   sig_ant_a = sig_a;
   sig_ant_b = sig_b;
 
-  pulses += enc_table[dir_rot];
+  pulses += enc_table[encoder_signal];
+}
+
+void PID_timer_isr()
+{
+  angle = pulses * ang_per_pulse;
+  erro = set_point - angle;
+  integral += erro;
+  derivative = erro - previous_error;
+  output = Kp * erro + Ki * integral + Kd * derivative;
+
+  // direção do motor
+  if (output > 0)
+  {
+    real_output = output + h_ccw;
+    // verificação de overflow
+    if (real_output > 255)
+    {
+      real_output = 255;
+    }
+    digitalWrite(MOTOR_A1_PIN, LOW);
+    digitalWrite(MOTOR_A2_PIN, HIGH);
+    analogWrite(MOTOR_ASPEED_PIN, (uint8_t)real_output);
+  }
+  else
+  {
+    real_output = abs(output) + h_cw;
+    // verificação de overflow
+    if (real_output > 255)
+    {
+      real_output = 255;
+    }
+    digitalWrite(MOTOR_A1_PIN, HIGH);
+    digitalWrite(MOTOR_A2_PIN, LOW);
+    analogWrite(MOTOR_ASPEED_PIN, (uint8_t)real_output);
+  }
 }
 
 void setup()
 {
   pinMode(ENCODER_A, INPUT);
   pinMode(ENCODER_B, INPUT);
-  // pinMode(MOTOR_A, OUTPUT);
-  // pinMode(MOTOR_B, OUTPUT);
+  pinMode(MOTOR_A1_PIN, OUTPUT);
+  pinMode(MOTOR_A2_PIN, OUTPUT);
+  pinMode(MOTOR_ASPEED_PIN, OUTPUT);
   ledcSetup(MOTOR_A, 5000, 8);
-  ledcSetup(MOTOR_B, 5000, 8);
-  ledcAttachPin(MOTOR_A, MOTOR_A);
-  ledcAttachPin(MOTOR_B, MOTOR_B);
+  ledcAttachPin(MOTOR_ASPEED_PIN, MOTOR_A);
 
   Serial.begin(115200);
 
-  timer.attach(0.00008, timer_isr);
+  sig_a = digitalRead(ENCODER_A);
+  sig_b = digitalRead(ENCODER_B);
+  sig_ant_a = digitalRead(ENCODER_A);
+  sig_ant_b = digitalRead(ENCODER_B);
+
+  timer.attach(0.00008, enc_timer_isr);
+  timer2.attach(0.01, PID_timer_isr);
+  delay(1000);
 }
 
 void loop()
 {
-  // float ang = pulses;
-
-  // float erro = set_point - ang;
-  // integral += erro;
-  // derivative = erro - previous_error;
-  // int16_t output = 0;
-
-  // if (Kp * erro + Ki * integral + Kd * derivative > 255)
-  // {
-  //   output = 255;
-  // }
-  // else if (Kp * erro + Ki * integral + Kd * derivative < -255)
-  // {
-  //   output = -255;
-  // }
-  // else
-  // {
-  //   output = Kp * erro + Ki * integral + Kd * derivative;
-  // }
-  // Serial.print(" pulses: ");
-  // Serial.print(pulses);
-  // Serial.print(" erro: ");
-  // Serial.println(erro);
-
-  // if (output > 0)
-  // {
-
-  //   ledcWrite(MOTOR_A, output);
-  //   ledcWrite(MOTOR_B, 0);
-
-  //   // sentido horario
-  // }
-  // else
-  // {
-  //   ledcWrite(MOTOR_A, 0);
-  //   ledcWrite(MOTOR_B, abs(output));
-  //   // sentido anti horario
-  // }
-
-  // previous_error = erro;
+  float degree = (pulses * ang_per_pulse) * 180 / PI;
+  Serial.print(" Angle: ");
+  Serial.print(degree);
+  Serial.print(" Pulses: ");
+  Serial.print(pulses);
+  Serial.print(" direction: ");
+  Serial.print(enc_table[encoder_signal]);
+  Serial.print(" PID: ");
+  Serial.println(output);
 }
