@@ -74,9 +74,9 @@ const float ang_per_pulse = (2 * PI) / 5770;
 const uint8_t h_cw = 61;
 const uint8_t h_ccw = 54;
 
-float Kp = 7;
+float Kp = 35;
 float Ki = 0;
-float Kd = 7;
+float Kd = 15;
 
 float previous_error = 0;
 float integral = 0;
@@ -95,6 +95,16 @@ const int8_t enc_table[16] = {STOP, CCW, CW, EE,
                               CW, STOP, EE, CCW,
                               CCW, EE, STOP, CW,
                               EE, CW, CCW, STOP};
+
+void forward(uint8_t output){
+    analogWrite(MOTOR_A1_PIN, 0);
+    analogWrite(MOTOR_A2_PIN, output);
+}
+
+void backward(uint8_t output){
+    analogWrite(MOTOR_A2_PIN, 0);
+    analogWrite(MOTOR_A1_PIN, output);
+}
 
 void enc_timer_isr()
 {
@@ -116,6 +126,7 @@ void PID_timer_isr()
   integral += erro;
   derivative = erro - previous_error;
   output = Kp * erro + Ki * integral + Kd * derivative;
+  // output = Kp * erro + Kd * derivative;
 
   // direção do motor
   if (output > 0)
@@ -126,9 +137,7 @@ void PID_timer_isr()
     {
       real_output = 255;
     }
-    digitalWrite(MOTOR_A1_PIN, LOW);
-    digitalWrite(MOTOR_A2_PIN, HIGH);
-    analogWrite(MOTOR_ASPEED_PIN, (uint8_t)real_output);
+    backward(output);
   }
   else
   {
@@ -138,9 +147,7 @@ void PID_timer_isr()
     {
       real_output = 255;
     }
-    digitalWrite(MOTOR_A1_PIN, HIGH);
-    digitalWrite(MOTOR_A2_PIN, LOW);
-    analogWrite(MOTOR_ASPEED_PIN, (uint8_t)real_output);
+    forward(output);
   }
 }
 
@@ -150,9 +157,10 @@ void setup()
   pinMode(ENCODER_B, INPUT);
   pinMode(MOTOR_A1_PIN, OUTPUT);
   pinMode(MOTOR_A2_PIN, OUTPUT);
-  pinMode(MOTOR_ASPEED_PIN, OUTPUT);
-  ledcSetup(MOTOR_A, 5000, 8);
-  ledcAttachPin(MOTOR_ASPEED_PIN, MOTOR_A);
+  ledcSetup(0, 5000, 8);
+  ledcSetup(1, 5000, 8);
+  ledcAttachPin(MOTOR_A1_PIN, 0);
+  ledcAttachPin(MOTOR_A2_PIN, 1);
 
   Serial.begin(115200);
 
@@ -176,5 +184,6 @@ void loop()
   Serial.print(" direction: ");
   Serial.print(enc_table[encoder_signal]);
   Serial.print(" PID: ");
-  Serial.println(output);
+  Serial.println(real_output);
+  
 }
