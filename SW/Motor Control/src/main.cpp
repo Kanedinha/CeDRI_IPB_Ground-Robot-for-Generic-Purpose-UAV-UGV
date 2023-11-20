@@ -49,10 +49,10 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include "esp_timer.h"
 #include <Ticker.h>
 
-#define ENCODER_A 25
-#define ENCODER_B 26
-#define MOTOR_A1_PIN 16
-#define MOTOR_A2_PIN 27
+#define ENCODER_A 25 // fio branco enc
+#define ENCODER_B 26 // fio amarelo enc
+#define MOTOR_A1_PIN 16 // R PWM driver
+#define MOTOR_A2_PIN 27 // L PWM driver
 #define MOTOR_ASPEED_PIN 14
 #define MOTOR_A 0
 #define MOTOR_B 1
@@ -76,7 +76,7 @@ const uint8_t h_ccw = 54;
 
 float Kp = 35;
 float Ki = 0;
-float Kd = 15;
+float Kd = 5;
 
 float previous_error = 0;
 float integral = 0;
