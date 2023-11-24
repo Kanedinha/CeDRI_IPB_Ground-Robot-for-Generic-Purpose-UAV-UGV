@@ -71,17 +71,18 @@ bool sig_ant_b = 0;
 float angle = 0;
 const float ang_per_pulse = (2 * PI) / 5770;
 
-const uint8_t h_cw = 61;
-const uint8_t h_ccw = 54;
+const uint8_t h_cw = 15;
+const uint8_t h_ccw = 13;
 
-float Kp = 35;
+float Kff = 100;
+float Kp = 6;
 float Ki = 0;
-float Kd = 5;
+float Kd = 7;
 
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = PI;
+float set_point = PI/4;
 float erro = 0;
 float output = 0;
 float real_output = 0;
@@ -98,6 +99,7 @@ const int8_t enc_table[16] = {STOP, CCW, CW, EE,
 
 void forward(uint8_t output){
     analogWrite(MOTOR_A1_PIN, 0);
+
     analogWrite(MOTOR_A2_PIN, output);
 }
 
@@ -123,11 +125,18 @@ void PID_timer_isr()
 {
   angle = pulses * ang_per_pulse;
   erro = set_point - angle;
-  integral += erro;
+  integral += erro; // saturar depois
   derivative = erro - previous_error;
   output = Kp * erro + Ki * integral + Kd * derivative;
   // output = Kp * erro + Kd * derivative;
 
+  if(integral > 255){
+    integral = 255;
+  }
+  if(integral < -255){
+    integral = -255;
+  }
+  
   // direção do motor
   if (output > 0)
   {
@@ -137,7 +146,7 @@ void PID_timer_isr()
     {
       real_output = 255;
     }
-    backward(output);
+    backward(real_output);
   }
   else
   {
@@ -147,7 +156,7 @@ void PID_timer_isr()
     {
       real_output = 255;
     }
-    forward(output);
+    forward(real_output);
   }
 }
 
@@ -170,20 +179,17 @@ void setup()
   sig_ant_b = digitalRead(ENCODER_B);
 
   timer.attach(0.00008, enc_timer_isr);
-  timer2.attach(0.01, PID_timer_isr);
+  // timer2.attach(0.01, PID_timer_isr);
   delay(1000);
+
+  backward(set_point*Kff);
 }
 
 void loop()
 {
   float degree = (pulses * ang_per_pulse) * 180 / PI;
-  Serial.print(" Angle: ");
-  Serial.print(degree);
-  Serial.print(" Pulses: ");
-  Serial.print(pulses);
-  Serial.print(" direction: ");
-  Serial.print(enc_table[encoder_signal]);
-  Serial.print(" PID: ");
-  Serial.println(real_output);
+  Serial.print(degree); // angle
+  Serial.print(','); // angle
+  Serial.println(set_point*Kff);
   
 }
