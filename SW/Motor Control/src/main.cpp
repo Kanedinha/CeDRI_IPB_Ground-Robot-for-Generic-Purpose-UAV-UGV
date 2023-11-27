@@ -49,8 +49,8 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include "esp_timer.h"
 #include <Ticker.h>
 
-#define ENCODER_A 25 // fio branco enc
-#define ENCODER_B 26 // fio amarelo enc
+#define ENCODER_A 25    // fio branco enc
+#define ENCODER_B 26    // fio amarelo enc
 #define MOTOR_A1_PIN 16 // R PWM driver
 #define MOTOR_A2_PIN 27 // L PWM driver
 #define MOTOR_ASPEED_PIN 14
@@ -74,15 +74,15 @@ const float ang_per_pulse = (2 * PI) / 5770;
 const uint8_t h_cw = 15;
 const uint8_t h_ccw = 13;
 
-float Kff = 100;
-float Kp = 6;
-float Ki = 0;
-float Kd = 7;
+float Kff = 8;
+float Kp = 3;
+float Ki = 0.01;
+float Kd = 1;
 
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = PI/4;
+float set_point = (3 * PI) / 2;
 float erro = 0;
 float output = 0;
 float real_output = 0;
@@ -97,15 +97,17 @@ const int8_t enc_table[16] = {STOP, CCW, CW, EE,
                               CCW, EE, STOP, CW,
                               EE, CW, CCW, STOP};
 
-void forward(uint8_t output){
-    analogWrite(MOTOR_A1_PIN, 0);
+void forward(uint8_t output)
+{
+  analogWrite(MOTOR_A1_PIN, 0);
 
-    analogWrite(MOTOR_A2_PIN, output);
+  analogWrite(MOTOR_A2_PIN, output);
 }
 
-void backward(uint8_t output){
-    analogWrite(MOTOR_A2_PIN, 0);
-    analogWrite(MOTOR_A1_PIN, output);
+void backward(uint8_t output)
+{
+  analogWrite(MOTOR_A2_PIN, 0);
+  analogWrite(MOTOR_A1_PIN, output);
 }
 
 void enc_timer_isr()
@@ -130,13 +132,15 @@ void PID_timer_isr()
   output = Kp * erro + Ki * integral + Kd * derivative;
   // output = Kp * erro + Kd * derivative;
 
-  if(integral > 255){
+  if (integral > 255)
+  {
     integral = 255;
   }
-  if(integral < -255){
+  if (integral < -255)
+  {
     integral = -255;
   }
-  
+
   // direção do motor
   if (output > 0)
   {
@@ -182,14 +186,14 @@ void setup()
   // timer2.attach(0.01, PID_timer_isr);
   delay(1000);
 
-  backward(set_point*Kff);
+  backward(set_point * Kff);
 }
 
 void loop()
 {
   float degree = (pulses * ang_per_pulse) * 180 / PI;
   Serial.print(degree); // angle
-  Serial.print(','); // angle
-  Serial.println(set_point*Kff);
-  
+  Serial.print(',');    // angle
+  Serial.println(set_point * Kff);
+  // Serial.println(real_output);
 }
