@@ -74,15 +74,15 @@ const float ang_per_pulse = (2 * PI) / 5770;
 const uint8_t h_cw = 15;
 const uint8_t h_ccw = 13;
 
-float Kff = 8;
-float Kp = 3;
-float Ki = 0.01;
-float Kd = 1;
+float Kff = 27;
+float Kp = 10;
+float Ki = 1;
+float Kd = 6;
 
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = (3 * PI) / 2;
+float set_point = PI / 2;
 float erro = 0;
 float output = 0;
 float real_output = 0;
@@ -129,7 +129,7 @@ void PID_timer_isr()
   erro = set_point - angle;
   integral += erro; // saturar depois
   derivative = erro - previous_error;
-  output = Kp * erro + Ki * integral + Kd * derivative;
+  output = Kp * erro + Ki * integral + Kd * derivative + Kff*set_point;
   // output = Kp * erro + Kd * derivative;
 
   if (integral > 255)
@@ -170,8 +170,8 @@ void setup()
   pinMode(ENCODER_B, INPUT);
   pinMode(MOTOR_A1_PIN, OUTPUT);
   pinMode(MOTOR_A2_PIN, OUTPUT);
-  ledcSetup(0, 5000, 8);
-  ledcSetup(1, 5000, 8);
+  ledcSetup(0, 10000, 8);
+  ledcSetup(1, 10000, 8);
   ledcAttachPin(MOTOR_A1_PIN, 0);
   ledcAttachPin(MOTOR_A2_PIN, 1);
 
@@ -183,10 +183,10 @@ void setup()
   sig_ant_b = digitalRead(ENCODER_B);
 
   timer.attach(0.00008, enc_timer_isr);
-  // timer2.attach(0.01, PID_timer_isr);
+  timer2.attach(0.01, PID_timer_isr);
   delay(1000);
 
-  backward(set_point * Kff);
+  // backward(set_point * Kff);
 }
 
 void loop()
@@ -194,6 +194,6 @@ void loop()
   float degree = (pulses * ang_per_pulse) * 180 / PI;
   Serial.print(degree); // angle
   Serial.print(',');    // angle
-  Serial.println(set_point * Kff);
-  // Serial.println(real_output);
+  // Serial.println(set_point * Kff);
+  Serial.println(real_output);
 }
