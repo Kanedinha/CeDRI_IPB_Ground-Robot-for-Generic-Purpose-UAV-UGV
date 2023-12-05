@@ -75,7 +75,7 @@ const uint8_t h_cw = 15;
 const uint8_t h_ccw = 13;
 
 float Kff = 27;
-float Kp = 10;
+float Kp = 5;
 float Ki = 1;
 float Kd = 6;
 
@@ -129,7 +129,7 @@ void PID_timer_isr()
   erro = set_point - angle;
   integral += erro; // saturar depois
   derivative = erro - previous_error;
-  output = Kp * erro + Ki * integral + Kd * derivative + Kff*set_point;
+  output = Kp * erro + Ki * integral + Kd * derivative + Kff * set_point;
   // output = Kp * erro + Kd * derivative;
 
   if (integral > 255)
@@ -191,9 +191,43 @@ void setup()
 
 void loop()
 {
-  float degree = (pulses * ang_per_pulse) * 180 / PI;
-  Serial.print(degree); // angle
-  Serial.print(',');    // angle
-  // Serial.println(set_point * Kff);
-  Serial.println(real_output);
+
+  if (Serial.available() > 0)
+  {
+    // Aguarda a chegada de dados pela porta serial
+    char receivedChar = Serial.read();
+
+    // Verifica se o caractere recebido é um número (48 a 57 na tabela ASCII)
+    if (receivedChar >= '0' && receivedChar <= '9')
+    {
+      // Converte o caractere para um valor numérico e atualiza a variável correspondente
+      switch (receivedChar)
+      {
+      case '1':
+        Kp = Serial.parseInt();
+        break;
+      case '2':
+        Ki = Serial.parseInt();
+        break;
+      case '3':
+        Kd = Serial.parseInt();
+        break;
+      case '4':
+        set_point = Serial.parseInt();
+        break;
+      default:
+        break;
+      }
+    }
+
+    Serial.print("Variáveis atualizadas: ");
+    Serial.print("Kp: ");
+    Serial.print(Kp);
+    Serial.print(", Ki: ");
+    Serial.print(Ki);
+    Serial.print(", Kd: ");
+    Serial.print(Kd);
+    Serial.print(", set point: ");
+    Serial.println(set_point);
+  }
 }
