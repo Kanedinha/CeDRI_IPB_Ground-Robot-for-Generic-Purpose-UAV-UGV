@@ -52,6 +52,8 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include <Adafruit_Sensor.h>
 #include <Adafruit_ADXL345_U.h>
 #include <math.h>
+#include "MoveMean.h"
+#include "IIR_filter.h"
 // #include "ADXL345.cpp"
 
 // motor defines
@@ -114,18 +116,20 @@ Ticker timer2;
 
 // ADXL345 object and vars
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
+float a_x = 0;
+float a_y = 0;
+float a_z = 0;
+float xFiltrado = 0;
+float yFiltrado = 0;
+float zFiltrado = 0;
 float pitchFiltrado = 0;
 float rollFiltrado = 0;
 float roll = 0;
 float pitch = 0;
-float rollOffset = 3;
+float rollOffset = 0;
 float pitchOffset = 0;
-#define ALPHA 0.8
-#define N 31
 
-// IIR
-float amostraFiltrada = 0.0;
-float decaimento = 0.6; // Fator de decaimento
+
 
 // FIR
 #define NUM_COEFICIENTES 93
@@ -227,6 +231,9 @@ float coeficientes[NUM_COEFICIENTES] = {
 
 float bufferRoll[NUM_COEFICIENTES] = {0};
 float bufferPitch[NUM_COEFICIENTES] = {0};
+float bufferX[NUM_COEFICIENTES] = {0};
+float bufferY[NUM_COEFICIENTES] = {0};
+float bufferZ[NUM_COEFICIENTES] = {0};
 int indice = 0;
 
 // encoder table
@@ -314,7 +321,7 @@ void setup()
   ledcAttachPin(MOTOR_A1_PIN, 0);
   ledcAttachPin(MOTOR_A2_PIN, 1);
 
-  Serial.begin(115200);
+  Serial.begin(256000);
 
   sig_a = digitalRead(ENCODER_A);
   sig_b = digitalRead(ENCODER_B);
@@ -383,44 +390,81 @@ void loop()
   accel.getEvent(&event);
 
   // --------------------------------------------------------------------------------------- //
-  // Roll and Pitch angles
+  // Roll and Pitch angles, accelerations
 
-  roll = atan2(event.acceleration.y, event.acceleration.z) * 180.0 / PI;
-  roll = roll + rollOffset;
-  pitch = atan2(-event.acceleration.x, sqrt(event.acceleration.y * event.acceleration.y + event.acceleration.z * event.acceleration.z)) * 180.0 / PI;
-  pitch = pitch + pitchOffset;
+  a_x = event.acceleration.x;
+  a_y = event.acceleration.y;
+  a_z = event.acceleration.z;
+
+  // roll = atan2(a_y, a_z) * 180.0 / PI;
+  // roll = roll + rollOffset;
+  // pitch = atan2(-a_x, sqrt(a_y * a_y + a_z * a_z)) * 180.0 / PI;
+  // pitch = pitch + pitchOffset;
   float yaw = 0;
 
   // --------------------------------------------------------------------------------------- //
   // FIR
-  bufferRoll[indice] = roll;
-  bufferPitch[indice] = pitch;
-  float rollFiltrado = 0;
-  float pitchFiltrado = 0;
-  for (int i = 0; i < NUM_COEFICIENTES; i++)
-  {
-    int indiceBuffer = (indice + i) % NUM_COEFICIENTES;
-    rollFiltrado += coeficientes[i] * bufferRoll[indiceBuffer];
-    pitchFiltrado += coeficientes[i] * bufferPitch[indiceBuffer];
-  }
-  indice = (indice + 1) % NUM_COEFICIENTES;
+
+  // bufferX[indice] = a_x;
+  // bufferY[indice] = a_y;
+  // bufferZ[indice] = a_z;
+  // xFiltrado = 0;
+  // yFiltrado = 0;
+  // zFiltrado = 0;
+  // for (int i = 0; i < NUM_COEFICIENTES; i++)
+  // {
+  //   int indiceBuffer = (indice + i) % NUM_COEFICIENTES;
+  //   xFiltrado += coeficientes[i] * bufferX[indiceBuffer];
+  //   yFiltrado += coeficientes[i] * bufferY[indiceBuffer];
+  //   zFiltrado += coeficientes[i] * bufferZ[indiceBuffer];
+  // }
+  // indice = (indice + 1) % NUM_COEFICIENTES;
+
+  // roll = atan2(yFiltrado, zFiltrado) * 180.0 / PI;
+  // roll = roll + rollOffset;
+  // pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
+  // pitch = pitch + pitchOffset;
+
+  // ****************************** filtro direto nos angulos ****************************** //
+  // bufferRoll[indice] = roll;
+  // bufferPitch[indice] = pitch;
+  // rollFiltrado = 0;
+  // pitchFiltrado = 0;
+  // for (int i = 0; i < NUM_COEFICIENTES; i++)
+  // {
+  //   int indiceBuffer = (indice + i) % NUM_COEFICIENTES;
+  //   rollFiltrado += coeficientes[i] * bufferRoll[indiceBuffer];
+  //   pitchFiltrado += coeficientes[i] * bufferPitch[indiceBuffer];
+  // }
+  // indice = (indice + 1) % NUM_COEFICIENTES;
 
   // --------------------------------------------------------------------------------------- //
   // IIR
-  // rollFiltrado = (1 - decaimento) * roll + decaimento * amostraFiltrada;
-  // pitchFiltrado = (1 - decaimento) * pitch + decaimento * amostraFiltrada;
-  // Serial.println(amostraFiltrada);
+
+  // xFiltrado = IIR(a_x, xFiltrado, amortecimento);
+  // yFiltrado = IIR(a_y, yFiltrado, amortecimento);
+  // zFiltrado = IIR(a_z, zFiltrado, amortecimento);
 
   // --------------------------------------------------------------------------------------- //
   // Move Mean
+  xFiltrado = MoveMean(a_x, xFiltrado);
+  yFiltrado = MoveMean(a_y, yFiltrado);
+  zFiltrado = MoveMean(a_z, zFiltrado);
+
+  roll = atan2(yFiltrado, zFiltrado) * 180.0 / PI;
+  roll = roll + rollOffset;
+  pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
+  pitch = pitch + pitchOffset;
+
+  // ****************************** filtro direto nos angulos ****************************** //
   // rollFiltrado = (rollFiltrado * N + roll) / (N + 1);
   // pitchFiltrado = (pitchFiltrado * N + pitch) / (N + 1);
 
   // --------------------------------------------------------------------------------------- //
 
-  Serial.print(rollFiltrado);
+  Serial.print(roll);
   Serial.print(";");
-  Serial.println(pitchFiltrado);
+  Serial.println(pitch);
 
   // calcular taxa de amostragem
   // unsigned long tempoAtual = millis();
