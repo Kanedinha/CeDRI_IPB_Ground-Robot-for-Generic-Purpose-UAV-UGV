@@ -1,0 +1,16 @@
+{
+    "name": "MotorControler",
+    "version": "1.0.0",
+    "description": "project for master degree thesys",
+    "keywords": "Platform, robot, motor, controllers",
+    "authors":
+    [
+      {
+        "name": "Emerson Kaneda",
+        "email": "emerson.k.kaneda@gmail.com"
+      }
+    ],
+    "license": "MIT",
+    "frameworks": "Arduino",
+    "platforms": "Esp32"
+  }
