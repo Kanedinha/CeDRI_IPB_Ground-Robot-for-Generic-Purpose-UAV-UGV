@@ -66,8 +66,8 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #define MOTOR_ASPEED_PIN 14
 #define MOTOR_A 0
 #define MOTOR_B 1
-#define MOTOR_STEP 18
-#define MOTOR_DIR 19
+#define MOTOR_STEP 14
+#define MOTOR_DIR 12
 
 // Servo motor
 uint8_t angleX = 0;
@@ -246,7 +246,7 @@ void setup()
 
   timer.attach(0.00008, enc_timer_isr);
   timer2.attach(0.01, PID_timer_isr);
-  timer3.attach(0.01, step_isr);
+  timer3.attach(0.002, step_isr);
 
   delay(1000);
 
