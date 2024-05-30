@@ -52,10 +52,9 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include <Adafruit_Sensor.h>
 #include <Adafruit_ADXL345_U.h>
 #include <math.h>
-// #include "main.h"
+#include <Adafruit_MPU6050.h>
 #include "MoveMean.h"
 #include "IIR_filter.h"
-// #include "ADXL345.cpp"
 #include <ESP32Servo.h>
 
 // motor defines
@@ -75,6 +74,7 @@ uint8_t angleY = 0;
 uint16_t timeCount = 0;
 bool stepState = HIGH;
 bool motorDirection = 0;
+float numOfSteps = 0;
 
 // directions
 #define CCW -1 // counter clockwise
@@ -87,8 +87,8 @@ bool motorDirection = 0;
 #define SAMPLE_LENGHT 6
 
 // encoder vars
-#define MAX_ANGLE 180
-#define MIN_ANGLE 0
+#define MAX_ANGLE 90
+#define MIN_ANGLE -90
 uint8_t encoder_signal = 0;
 int16_t pulses = 0;
 bool sig_a = 0;
@@ -127,6 +127,9 @@ uint8_t i = 0;
 Ticker timer;
 Ticker timer2;
 Ticker timer3;
+
+// MPU object and vars
+Adafruit_MPU6050 mpu1;
 
 // ADXL345 object and vars
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
@@ -177,50 +180,68 @@ void enc_timer_isr()
 
 void PID_timer_isr()
 {
-  angle = pulses * ang_per_pulse;
-  erro = set_point - angle;
-  integral += erro; // saturar depois
-  derivative = erro - previous_error;
-  output = Kp * erro + Ki * integral + Kd * derivative + Kff * set_point;
-  // output = Kp * erro + Kd * derivative;
+  // angle = pulses * ang_per_pulse;
+  // erro = set_point - angle;
+  // integral += erro; // saturar depois
+  // derivative = erro - previous_error;
+  // output = Kp * erro + Ki * integral + Kd * derivative + Kff * set_point;
+  // // output = Kp * erro + Kd * derivative;
 
-  if (integral > 255)
-  {
-    integral = 255;
-  }
-  if (integral < -255)
-  {
-    integral = -255;
-  }
+  // if (integral > 255)
+  // {
+  //   integral = 255;
+  // }
+  // if (integral < -255)
+  // {
+  //   integral = -255;
+  // }
 
-  // direção do motor
-  if (output > 0)
+  // // direção do motor
+  // if (output > 0)
+  // {
+  //   real_output = output + h_ccw;
+  //   // verificação de overflow
+  //   if (real_output > 255)
+  //   {
+  //     real_output = 255;
+  //   }
+  //   backward(real_output);
+  // }
+  // else
+  // {
+  //   real_output = abs(output) + h_cw;
+  //   // verificação de overflow
+  //   if (real_output > 255)
+  //   {
+  //     real_output = 255;
+  //   }
+  //   forward(real_output);
+  // }
+
+  erro = angleY - pitch;
+  numOfSteps = round(erro / 1.8);
+  if (erro > 0)
   {
-    real_output = output + h_ccw;
-    // verificação de overflow
-    if (real_output > 255)
-    {
-      real_output = 255;
-    }
-    backward(real_output);
+    motorDirection = 1;
   }
   else
   {
-    real_output = abs(output) + h_cw;
-    // verificação de overflow
-    if (real_output > 255)
-    {
-      real_output = 255;
-    }
-    forward(real_output);
+    motorDirection = 0;
   }
 }
 
 void step_isr()
 {
-  digitalWrite(MOTOR_DIR, motorDirection);
-  digitalWrite(MOTOR_STEP, stepState);
-  stepState = !stepState;
+  if (numOfSteps != 0)
+  {
+    digitalWrite(MOTOR_DIR, motorDirection);
+    digitalWrite(MOTOR_STEP, stepState);
+    stepState = !stepState;
+    if (stepState)
+    {
+      numOfSteps--;
+    }
+  }
 }
 
 void setup()
@@ -268,34 +289,23 @@ void loop()
     // set_point = Serial.parseFloat();
     String dadosRecebidos = Serial.readStringUntil('\n');
 
-    set_point = dadosRecebidos.substring(0, dadosRecebidos.indexOf(';')).toFloat();
-    if (set_point > MAX_ANGLE)
-    {
-      set_point = MAX_ANGLE;
-    }
-    if (set_point < MIN_ANGLE)
-    {
-      set_point = MIN_ANGLE;
-    }
+    // numOfSteps += dadosRecebidos.substring(0, dadosRecebidos.indexOf(';')).toFloat();
+    // set_point = dadosRecebidos.substring(0, dadosRecebidos.indexOf(';')).toFloat();
+    // if (set_point > MAX_ANGLE)
+    // {
+    //   set_point = MAX_ANGLE;
+    // }
+    // if (set_point < MIN_ANGLE)
+    // {
+    //   set_point = MIN_ANGLE;
+    // }
 
-    dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
+    // dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
 
     angleX = dadosRecebidos.substring(0, dadosRecebidos.indexOf(',')).toFloat();
     dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
 
     angleY = dadosRecebidos.toFloat();
-
-    motorDirection = !motorDirection;
-
-    Serial.print("Variáveis atualizadas: ");
-    Serial.print("Kp: ");
-    Serial.print(Kp);
-    Serial.print(", Ki: ");
-    Serial.print(Ki);
-    Serial.print(", Kd: ");
-    Serial.print(Kd);
-    Serial.print(", set point: ");
-    Serial.println(set_point);
   }
 
   sensors_event_t event;
