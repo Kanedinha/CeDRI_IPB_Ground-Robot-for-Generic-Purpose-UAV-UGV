@@ -58,49 +58,28 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include <ESP32Servo.h>
 
 // motor defines
-#define ENCODER_A 25    // fio branco enc
-#define ENCODER_B 26    // fio amarelo enc
-#define MOTOR_A1_PIN 16 // R PWM driver
-#define MOTOR_A2_PIN 27 // L PWM driver
-#define MOTOR_ASPEED_PIN 14
-#define MOTOR_A 0
-#define MOTOR_B 1
-#define MOTOR_STEP 14
-#define MOTOR_DIR 12
+#define MOTOR_PITCH_STEP 14
+#define MOTOR_PITCH_DIR 12
+#define MOTOR_ROLL_STEP 14
+#define MOTOR_ROLL_DIR 12
 
 // Servo motor
-uint8_t angleX = 0;
-uint8_t angleY = 0;
 uint16_t timeCount = 0;
-bool stepState = HIGH;
-bool motorDirection = 0;
-float numOfSteps = 0;
-
-// directions
-#define CCW -1 // counter clockwise
-#define CW 1   // clockwise
-#define STOP 0
-#define EE 0 // encoder erro
+bool PitchStepState = HIGH;
+bool PitchMotorDirection = 0;
+float PitchNumOfSteps = 0;
+bool RollStepState = HIGH;
+bool RollMotorDirection = 0;
+float RollNumOfSteps = 0;
 
 // ADXL Defines
 #define DEVICE 0x53
 #define SAMPLE_LENGHT 6
 
 // encoder vars
-#define MAX_ANGLE 90
-#define MIN_ANGLE -90
-uint8_t encoder_signal = 0;
-int16_t pulses = 0;
-bool sig_a = 0;
-bool sig_b = 0;
-bool sig_ant_a = 0;
-bool sig_ant_b = 0;
-float angle = 0;
-const float ang_per_pulse = (2 * PI) / 5770;
-
-// compensation h
-const uint8_t h_cw = 15;
-const uint8_t h_ccw = 13;
+#define MAX_ANGLE 35
+#define MIN_ANGLE -35
+const float ang_per_step = 1.8;
 
 // PID FF Gains
 float Kff = 27;
@@ -112,10 +91,10 @@ float Kd = 6;
 float previous_error = 0;
 float integral = 0;
 float derivative = 0;
-float set_point = PI / 2;
-float erro = 0;
-float output = 0;
-float real_output = 0;
+float set_point_pitch = 0;
+float set_point_roll = 0;
+float PitchError = 0;
+float RollError = 0;
 
 // counter
 #define INTERVALO_DE_AMOSTRAGEM 1000
@@ -146,100 +125,58 @@ float pitch = 0;
 float rollOffset = 0;
 float pitchOffset = 0;
 
-// encoder table
-const int8_t enc_table[16] = {STOP, CCW, CW, EE,
-                              CW, STOP, EE, CCW,
-                              CCW, EE, STOP, CW,
-                              EE, CW, CCW, STOP};
-
-void forward(uint8_t output)
-{
-  analogWrite(MOTOR_A1_PIN, 0);
-
-  analogWrite(MOTOR_A2_PIN, output);
-}
-
-void backward(uint8_t output)
-{
-  analogWrite(MOTOR_A2_PIN, 0);
-  analogWrite(MOTOR_A1_PIN, output);
-}
-
-void enc_timer_isr()
-{
-  sig_a = digitalRead(ENCODER_A);
-  sig_b = digitalRead(ENCODER_B);
-
-  encoder_signal = (sig_a << 3) | (sig_b << 2) | (sig_ant_a << 1) | (sig_ant_b);
-
-  sig_ant_a = sig_a;
-  sig_ant_b = sig_b;
-
-  pulses += enc_table[encoder_signal];
-}
-
 void PID_timer_isr()
 {
-  // angle = pulses * ang_per_pulse;
-  // erro = set_point - angle;
-  // integral += erro; // saturar depois
-  // derivative = erro - previous_error;
-  // output = Kp * erro + Ki * integral + Kd * derivative + Kff * set_point;
-  // // output = Kp * erro + Kd * derivative;
+  // Pitch calc
+  PitchError = set_point_pitch - pitch;
+  PitchNumOfSteps = round(PitchError / ang_per_step);
 
-  // if (integral > 255)
-  // {
-  //   integral = 255;
-  // }
-  // if (integral < -255)
-  // {
-  //   integral = -255;
-  // }
+  // Roll calc
+  RollError = set_point_roll - roll;
+  RollNumOfSteps = round(RollError / ang_per_step);
 
-  // // direção do motor
-  // if (output > 0)
-  // {
-  //   real_output = output + h_ccw;
-  //   // verificação de overflow
-  //   if (real_output > 255)
-  //   {
-  //     real_output = 255;
-  //   }
-  //   backward(real_output);
-  // }
-  // else
-  // {
-  //   real_output = abs(output) + h_cw;
-  //   // verificação de overflow
-  //   if (real_output > 255)
-  //   {
-  //     real_output = 255;
-  //   }
-  //   forward(real_output);
-  // }
-
-  erro = angleY - pitch;
-  numOfSteps = round(erro / 1.8);
-  if (erro > 0)
+  if (PitchError > 0)
   {
-    motorDirection = 1;
+    PitchMotorDirection = 1;
   }
   else
   {
-    motorDirection = 0;
+    PitchMotorDirection = 0;
+  }
+
+  if (RollError > 0)
+  {
+    RollMotorDirection = 1;
+  }
+  else
+  {
+    RollMotorDirection = 0;
   }
 }
 
 void step_isr()
 {
-  if (numOfSteps != 0)
+  // Pitch Steps
+  if (PitchNumOfSteps != 0)
   {
-    digitalWrite(MOTOR_DIR, motorDirection);
-    digitalWrite(MOTOR_STEP, stepState);
-    stepState = !stepState;
-    if (stepState)
+    digitalWrite(MOTOR_PITCH_DIR, PitchMotorDirection);
+    digitalWrite(MOTOR_PITCH_STEP, PitchStepState);
+    PitchStepState = !PitchStepState;
+    if (PitchStepState)
     {
-      numOfSteps--;
+      PitchNumOfSteps--;
+    }
+  }
+
+  // Roll Steps
+  if (RollNumOfSteps != 0)
+  {
+    digitalWrite(MOTOR_PITCH_DIR, RollMotorDirection);
+    digitalWrite(MOTOR_PITCH_STEP, RollStepState);
+    RollStepState = !RollStepState;
+    if (RollStepState)
+    {
+      RollNumOfSteps--;
     }
   }
 }
@@ -247,27 +184,10 @@ void step_isr()
 void setup()
 {
 
-  pinMode(MOTOR_DIR, OUTPUT);
-  pinMode(MOTOR_STEP, OUTPUT);
-  pinMode(ENCODER_A, INPUT);
-  pinMode(ENCODER_B, INPUT);
-  pinMode(MOTOR_A1_PIN, OUTPUT);
-  pinMode(MOTOR_A2_PIN, OUTPUT);
-  ledcSetup(0, 10000, 8);
-  ledcSetup(1, 10000, 8);
-  ledcAttachPin(MOTOR_A1_PIN, 0);
-  ledcAttachPin(MOTOR_A2_PIN, 1);
+  Serial.begin(1200);
 
-  Serial.begin(115200);
-
-  sig_a = digitalRead(ENCODER_A);
-  sig_b = digitalRead(ENCODER_B);
-  sig_ant_a = digitalRead(ENCODER_A);
-  sig_ant_b = digitalRead(ENCODER_B);
-
-  timer.attach(0.00008, enc_timer_isr);
-  timer2.attach(0.01, PID_timer_isr);
-  timer3.attach(0.002, step_isr);
+  timer.attach(0.01, PID_timer_isr);
+  timer2.attach(0.002, step_isr);
 
   delay(1000);
 
@@ -289,23 +209,20 @@ void loop()
     // set_point = Serial.parseFloat();
     String dadosRecebidos = Serial.readStringUntil('\n');
 
-    // numOfSteps += dadosRecebidos.substring(0, dadosRecebidos.indexOf(';')).toFloat();
-    // set_point = dadosRecebidos.substring(0, dadosRecebidos.indexOf(';')).toFloat();
-    // if (set_point > MAX_ANGLE)
-    // {
-    //   set_point = MAX_ANGLE;
-    // }
-    // if (set_point < MIN_ANGLE)
-    // {
-    //   set_point = MIN_ANGLE;
-    // }
-
-    // dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
-
-    angleX = dadosRecebidos.substring(0, dadosRecebidos.indexOf(',')).toFloat();
+    set_point_pitch = dadosRecebidos.substring(0, dadosRecebidos.indexOf(',')).toFloat();
     dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
 
-    angleY = dadosRecebidos.toFloat();
+    set_point_roll = dadosRecebidos.toFloat();
+
+    if (set_point_pitch > MAX_ANGLE)
+      set_point_pitch = MAX_ANGLE;
+    else if (set_point_pitch < MIN_ANGLE)
+      set_point_pitch = MIN_ANGLE;
+
+    if (set_point_roll > MAX_ANGLE)
+      set_point_roll = MAX_ANGLE;
+    else if (set_point_roll < MIN_ANGLE)
+      set_point_roll = MIN_ANGLE;
   }
 
   sensors_event_t event;
@@ -322,6 +239,7 @@ void loop()
   // roll = roll + rollOffset;
   // pitch = atan2(-a_x, sqrt(a_y * a_y + a_z * a_z)) * 180.0 / PI;
   // pitch = pitch + pitchOffset;
+
   float yaw = 0;
 
   // --------------------------------------------------------------------------------------- //
@@ -353,11 +271,9 @@ void loop()
   pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
   pitch = pitch + pitchOffset;
 
-  Serial.print(stepState);
+  Serial.println(pitch);
   Serial.print(";");
   Serial.print(roll);
-  Serial.print(";");
-  Serial.println(pitch);
 
   // calcular taxa de amostragem
   // unsigned long tempoAtual = millis();
