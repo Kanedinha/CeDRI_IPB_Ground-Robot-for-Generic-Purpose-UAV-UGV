@@ -58,8 +58,8 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include <ESP32Servo.h>
 
 // motor defines
-#define MOTOR_PITCH_STEP 14
-#define MOTOR_PITCH_DIR 12
+#define MOTOR_PITCH_STEP 13
+#define MOTOR_PITCH_DIR 5
 #define MOTOR_ROLL_STEP 14
 #define MOTOR_ROLL_DIR 12
 
@@ -67,19 +67,19 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 uint16_t timeCount = 0;
 bool PitchStepState = HIGH;
 bool PitchMotorDirection = 0;
-float PitchNumOfSteps = 0;
+uint8_t PitchNumOfSteps = 0;
 bool RollStepState = HIGH;
 bool RollMotorDirection = 0;
-float RollNumOfSteps = 0;
+uint8_t RollNumOfSteps = 0;
 
 // ADXL Defines
 #define DEVICE 0x53
 #define SAMPLE_LENGHT 6
 
 // encoder vars
-#define MAX_ANGLE 35
-#define MIN_ANGLE -35
-const float ang_per_step = 1.8;
+#define MAX_ANGLE 30
+#define MIN_ANGLE -30
+const float ang_per_step = 1.8 / 32;
 
 // PID FF Gains
 float Kff = 27;
@@ -129,12 +129,41 @@ void PID_timer_isr()
 {
   // Pitch calc
   PitchError = set_point_pitch - pitch;
-  PitchNumOfSteps = round(PitchError / ang_per_step);
+
+  if (PitchError > MAX_ANGLE)
+  {
+    PitchError = MAX_ANGLE;
+  }
+  else if (PitchError < MIN_ANGLE)
+  {
+    PitchError = MIN_ANGLE;
+  }
+  else if (abs(PitchError) < 3 * ang_per_step)
+  {
+    RollError = 0;
+  }
+
+  PitchNumOfSteps = uint8_t(abs(PitchError / ang_per_step));
 
   // Roll calc
   RollError = set_point_roll - roll;
-  RollNumOfSteps = round(RollError / ang_per_step);
 
+  if (RollError > MAX_ANGLE)
+  {
+    RollError = MAX_ANGLE;
+  }
+  else if (RollError < MIN_ANGLE)
+  {
+    RollError = MIN_ANGLE;
+  }
+  else if (abs(RollError) < 3 * ang_per_step)
+  {
+    RollError = 0;
+  }
+
+  RollNumOfSteps = uint8_t(abs(RollError / ang_per_step));
+
+  // Direction of each angle
   if (PitchError > 0)
   {
     PitchMotorDirection = 1;
@@ -146,11 +175,11 @@ void PID_timer_isr()
 
   if (RollError > 0)
   {
-    RollMotorDirection = 1;
+    RollMotorDirection = 0;
   }
   else
   {
-    RollMotorDirection = 0;
+    RollMotorDirection = 1;
   }
 }
 
@@ -171,8 +200,8 @@ void step_isr()
   // Roll Steps
   if (RollNumOfSteps != 0)
   {
-    digitalWrite(MOTOR_PITCH_DIR, RollMotorDirection);
-    digitalWrite(MOTOR_PITCH_STEP, RollStepState);
+    digitalWrite(MOTOR_ROLL_DIR, RollMotorDirection);
+    digitalWrite(MOTOR_ROLL_STEP, RollStepState);
     RollStepState = !RollStepState;
     if (RollStepState)
     {
@@ -184,10 +213,15 @@ void step_isr()
 void setup()
 {
 
-  Serial.begin(1200);
+  Serial.begin(9600);
 
-  timer.attach(0.01, PID_timer_isr);
-  timer2.attach(0.002, step_isr);
+  pinMode(MOTOR_PITCH_DIR, OUTPUT);
+  pinMode(MOTOR_PITCH_STEP, OUTPUT);
+  pinMode(MOTOR_ROLL_DIR, OUTPUT);
+  pinMode(MOTOR_ROLL_STEP, OUTPUT);
+
+  timer.attach_ms(5, PID_timer_isr);
+  timer2.attach_ms(0.002, step_isr);
 
   delay(1000);
 
@@ -207,12 +241,18 @@ void loop()
   if (Serial.available() > 0)
   {
     // set_point = Serial.parseFloat();
-    String dadosRecebidos = Serial.readStringUntil('\n');
+    String inputString = Serial.readStringUntil('\n');
+    inputString.trim();
+    int separatorIndex = inputString.indexOf(';');
 
-    set_point_pitch = dadosRecebidos.substring(0, dadosRecebidos.indexOf(',')).toFloat();
-    dadosRecebidos.remove(0, dadosRecebidos.indexOf(';') + 1);
+    if (separatorIndex != -1) {
+            String value1String = inputString.substring(0, separatorIndex);
+            String value2String = inputString.substring(separatorIndex + 1);
 
-    set_point_roll = dadosRecebidos.toFloat();
+            // Converte as strings para inteiros (ou floats, se necessário)
+            set_point_pitch = value1String.toFloat();
+            set_point_roll = value2String.toFloat();
+    }
 
     if (set_point_pitch > MAX_ANGLE)
       set_point_pitch = MAX_ANGLE;
@@ -271,9 +311,13 @@ void loop()
   pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
   pitch = pitch + pitchOffset;
 
-  Serial.println(pitch);
+  Serial.print(pitch);
   Serial.print(";");
   Serial.print(roll);
+  Serial.print(";");
+  Serial.print(set_point_pitch);
+  Serial.print(";");
+  Serial.println(set_point_roll);
 
   // calcular taxa de amostragem
   // unsigned long tempoAtual = millis();

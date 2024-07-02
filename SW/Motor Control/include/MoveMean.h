@@ -2,7 +2,7 @@
 #define _MOVEMEAN_H_
 
 // Move Mean
-#define N 63
+#define N 15
 
 float MoveMean(float x_0, float y_1);
 

@@ -1,0 +1,8 @@
+Bornes para conectar a bateria
+Bornes para 6 motores de passo e drivers
+Borne para o ESP32
+borne para hc12
+borne para conversor buck dc dc
+leds para saber se a placa está energizada
+chave liga e desliga energia
+sistema BMS futuramente
