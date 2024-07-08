@@ -56,6 +56,7 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #include "MoveMean.h"
 #include "IIR_filter.h"
 #include <ESP32Servo.h>
+#include <HardwareSerial.h>
 
 // motor defines
 #define MOTOR_PITCH_STEP 13
@@ -64,13 +65,13 @@ clock wise h_cw = 51 (52 começa a rodar sempre)
 #define MOTOR_ROLL_DIR 12
 
 // Servo motor
-uint16_t timeCount = 0;
 bool PitchStepState = HIGH;
 bool PitchMotorDirection = 0;
-uint8_t PitchNumOfSteps = 0;
+int16_t PitchNumOfSteps = 0;
 bool RollStepState = HIGH;
 bool RollMotorDirection = 0;
-uint8_t RollNumOfSteps = 0;
+int16_t RollNumOfSteps = 0;
+uint8_t deadSteps = 0;
 
 // ADXL Defines
 #define DEVICE 0x53
@@ -82,36 +83,45 @@ uint8_t RollNumOfSteps = 0;
 const float ang_per_step = 1.8 / 32;
 
 // PID FF Gains
-float Kff = 27;
-float Kp = 5;
-float Ki = 1;
-float Kd = 6;
+float Kff = 0;
+float Kp = 0.8;
+float Ki = 0.1;
+float Kd = 0;
 
 // PID Vars
 float previous_error = 0;
-float integral = 0;
-float derivative = 0;
+int16_t PitchIntegralError = 0;
+int16_t PitchDerivativeError = 0;
+int16_t RollIntegralError = 0;
+int16_t RollDerivativeError = 0;
 float set_point_pitch = 0;
 float set_point_roll = 0;
 float PitchError = 0;
 float RollError = 0;
-
-// counter
-#define INTERVALO_DE_AMOSTRAGEM 1000
-unsigned long tempoAnterior = 0;
-unsigned long contadorAmostras = 0;
-uint8_t i = 0;
+int16_t PitchStepsError = 0;
+int16_t RollStepsError = 0;
+int16_t LastPitchStepsError = 0;
+int16_t LastRollStepsError = 0;
 
 // timers
-Ticker timer;
+Ticker timer1;
 Ticker timer2;
-Ticker timer3;
+esp_timer_handle_t periodic_timer;
+long double timeNow = 0;
+long double lastTime = 0;
+long double rollStepTime = 0;
+uint16_t rollStepPeriod = 5000;
+long double pitchStepTime = 0;
+uint16_t pitchStepPeriod = 5000;
+uint16_t PID_Period = 10000; // microsseconds
 
 // MPU object and vars
 Adafruit_MPU6050 mpu1;
+sensors_event_t event;
 
 // ADXL345 object and vars
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
+
 float a_x = 0;
 float a_y = 0;
 float a_z = 0;
@@ -121,12 +131,97 @@ float zFiltrado = 0;
 float pitchFiltrado = 0;
 float rollFiltrado = 0;
 float roll = 0;
+float lastRoll = 0;
 float pitch = 0;
+float lastPitch = 0;
 float rollOffset = 0;
 float pitchOffset = 0;
+float rollSpeed = 0;
+float pitchSpeed = 0;
 
-void PID_timer_isr()
+// UART Obj
+// HardwareSerial UART_0(0);
+
+void SensorUpdate()
 {
+  accel.getEvent(&event);
+
+  float yaw = 0;
+
+  xFiltrado = MoveMean(event.acceleration.x, xFiltrado);
+  yFiltrado = MoveMean(event.acceleration.y, yFiltrado);
+  zFiltrado = MoveMean(event.acceleration.z, zFiltrado);
+
+  roll = atan2(yFiltrado, zFiltrado) * 180.0 / PI;
+  roll = roll + rollOffset;
+  pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
+  pitch = pitch + pitchOffset;
+
+  // ---------------------------------------IIR--------------------------------------------- //
+  // xFiltrado = filtroIIR(a_x);
+  // yFiltrado = filtroIIR(a_y);
+  // zFiltrado = filtroIIR(a_z);
+  // xFiltrado = IIR(a_x, xFiltrado, amortecimento);
+  // yFiltrado = IIR(a_y, yFiltrado, amortecimento);
+  // zFiltrado = IIR(a_z, zFiltrado, amortecimento);
+
+  // ------------------------------------Move Mean------------------------------------------ //
+  // xFiltrado = MoveMean(a_x, xFiltrado);
+  // yFiltrado = MoveMean(a_y, yFiltrado);
+  // zFiltrado = MoveMean(a_z, zFiltrado);
+
+  // Angular Speed calc
+  rollSpeed = (roll - lastRoll) / PID_Period;
+  lastRoll = roll;
+
+  pitchSpeed = (pitch - lastPitch) / PID_Period;
+  lastPitch = pitch;
+}
+
+void rollStep()
+{
+  // Roll Steps
+  if (RollNumOfSteps != 0)
+  {
+    digitalWrite(MOTOR_ROLL_DIR, RollMotorDirection);
+    digitalWrite(MOTOR_ROLL_STEP, RollStepState);
+    RollStepState = !RollStepState;
+    if (RollStepState && RollNumOfSteps > 0)
+    {
+      RollNumOfSteps--;
+    }
+    else
+    {
+      RollNumOfSteps++;
+    }
+  }
+
+  timer1.attach_ms(rollStepPeriod, rollStep);
+}
+
+void pitchStep()
+{
+  // Pitch Steps
+  if (PitchNumOfSteps != 0)
+  {
+    digitalWrite(MOTOR_PITCH_DIR, PitchMotorDirection);
+    digitalWrite(MOTOR_PITCH_STEP, PitchStepState);
+    PitchStepState = !PitchStepState;
+    if (PitchStepState && PitchNumOfSteps > 0)
+    {
+      PitchNumOfSteps--;
+    }
+    else
+    {
+      PitchNumOfSteps++;
+    }
+  }
+  timer2.attach_ms(pitchStepPeriod, pitchStep);
+}
+
+void PID()
+{
+  // ***************************************************************************** //
   // Pitch calc
   PitchError = set_point_pitch - pitch;
 
@@ -138,13 +233,27 @@ void PID_timer_isr()
   {
     PitchError = MIN_ANGLE;
   }
-  else if (abs(PitchError) < 3 * ang_per_step)
+  else if (abs(PitchError) < deadSteps * ang_per_step)
   {
-    RollError = 0;
+    PitchError = 0;
   }
 
-  PitchNumOfSteps = uint8_t(abs(PitchError / ang_per_step));
+  PitchStepsError = int16_t(PitchError / ang_per_step);
+  PitchDerivativeError = PitchStepsError - LastPitchStepsError;
+  PitchIntegralError += PitchStepsError;
 
+  if (PitchIntegralError > int16_t(MAX_ANGLE / ang_per_step))
+  {
+    PitchIntegralError = int16_t(MAX_ANGLE / ang_per_step);
+  }
+  else if (PitchIntegralError < int16_t(MIN_ANGLE / ang_per_step))
+  {
+    PitchIntegralError = int16_t(MIN_ANGLE / ang_per_step);
+  }
+
+  PitchNumOfSteps = (PitchStepsError * Kp) + (PitchIntegralError * Ki) + (PitchDerivativeError * Kd);
+
+  // ***************************************************************************** //
   // Roll calc
   RollError = set_point_roll - roll;
 
@@ -156,24 +265,37 @@ void PID_timer_isr()
   {
     RollError = MIN_ANGLE;
   }
-  else if (abs(RollError) < 3 * ang_per_step)
+  else if (abs(RollError) < deadSteps * ang_per_step)
   {
     RollError = 0;
   }
 
-  RollNumOfSteps = uint8_t(abs(RollError / ang_per_step));
+  RollStepsError = int16_t(RollError / ang_per_step);
+  RollDerivativeError = RollStepsError - LastRollStepsError;
+  RollIntegralError += RollStepsError;
+  if (RollIntegralError > int16_t(MAX_ANGLE / ang_per_step))
+  {
+    RollIntegralError = int16_t(MAX_ANGLE / ang_per_step);
+  }
+  else if (RollIntegralError < int16_t(MIN_ANGLE / ang_per_step))
+  {
+    RollIntegralError = int16_t(MIN_ANGLE / ang_per_step);
+  }
+
+  RollNumOfSteps = (RollStepsError * Kp) + (RollIntegralError * Ki) + (RollDerivativeError * Kd);
 
   // Direction of each angle
-  if (PitchError > 0)
-  {
-    PitchMotorDirection = 1;
-  }
-  else
+  // Pitch motor direction
+  if (PitchNumOfSteps > 0)
   {
     PitchMotorDirection = 0;
   }
-
-  if (RollError > 0)
+  else
+  {
+    PitchMotorDirection = 1;
+  }
+  // Roll motor direction
+  if (RollNumOfSteps > 0)
   {
     RollMotorDirection = 0;
   }
@@ -181,38 +303,39 @@ void PID_timer_isr()
   {
     RollMotorDirection = 1;
   }
-}
 
-void step_isr()
-{
-  // Pitch Steps
-  if (PitchNumOfSteps != 0)
-  {
-    digitalWrite(MOTOR_PITCH_DIR, PitchMotorDirection);
-    digitalWrite(MOTOR_PITCH_STEP, PitchStepState);
-    PitchStepState = !PitchStepState;
-    if (PitchStepState)
-    {
-      PitchNumOfSteps--;
-    }
-  }
-
-  // Roll Steps
+  // Step period
   if (RollNumOfSteps != 0)
   {
-    digitalWrite(MOTOR_ROLL_DIR, RollMotorDirection);
-    digitalWrite(MOTOR_ROLL_STEP, RollStepState);
-    RollStepState = !RollStepState;
-    if (RollStepState)
-    {
-      RollNumOfSteps--;
-    }
+    rollStepPeriod = PID_Period / abs(RollNumOfSteps);
   }
+  else
+  {
+    rollStepPeriod = 5000;
+  }
+
+  if (PitchNumOfSteps != 0)
+  {
+    pitchStepPeriod = PID_Period / abs(PitchNumOfSteps);
+  }
+  else
+  {
+    pitchStepPeriod = 5000;
+  }
+}
+
+void sendData()
+{
+  char buffer[100];
+  int length = snprintf(buffer, sizeof(buffer), "%.2f;%.2f;%d;%d\n", pitch, roll, set_point_pitch, set_point_roll);
+
+  // Enviar o buffer pela UART
+  Serial.write(buffer, length);
 }
 
 void setup()
 {
-
+  // UART_0.begin(9600);
   Serial.begin(9600);
 
   pinMode(MOTOR_PITCH_DIR, OUTPUT);
@@ -220,13 +343,14 @@ void setup()
   pinMode(MOTOR_ROLL_DIR, OUTPUT);
   pinMode(MOTOR_ROLL_STEP, OUTPUT);
 
-  timer.attach_ms(5, PID_timer_isr);
-  timer2.attach_ms(0.002, step_isr);
+  timer1.attach_ms(rollStepPeriod, rollStep);
+  timer2.attach_ms(pitchStepPeriod, pitchStep);
 
   delay(1000);
 
   if (!accel.begin())
   {
+    // UART_0.write("O sensor ADXL345 não foi detectado");
     Serial.println("O sensor ADXL345 não foi detectado");
     while (1)
       ;
@@ -245,13 +369,14 @@ void loop()
     inputString.trim();
     int separatorIndex = inputString.indexOf(';');
 
-    if (separatorIndex != -1) {
-            String value1String = inputString.substring(0, separatorIndex);
-            String value2String = inputString.substring(separatorIndex + 1);
+    if (separatorIndex != -1)
+    {
+      String value1String = inputString.substring(0, separatorIndex);
+      String value2String = inputString.substring(separatorIndex + 1);
 
-            // Converte as strings para inteiros (ou floats, se necessário)
-            set_point_pitch = value1String.toFloat();
-            set_point_roll = value2String.toFloat();
+      // Converte as strings para inteiros (ou floats, se necessário)
+      set_point_pitch = value1String.toFloat();
+      set_point_roll = value2String.toFloat();
     }
 
     if (set_point_pitch > MAX_ANGLE)
@@ -265,71 +390,28 @@ void loop()
       set_point_roll = MIN_ANGLE;
   }
 
-  sensors_event_t event;
-  accel.getEvent(&event);
+  timeNow = micros();
+  if (timeNow - lastTime > PID_Period)
+  {
+    lastTime = timeNow;
+    SensorUpdate();
+    PID();
+    Serial.write(0xAABB);
+    Serial.write((int16_t)(pitch * 100));
+    Serial.write((int16_t)(roll * 100));
+    Serial.write((int16_t)(set_point_pitch * 100));
+    Serial.write((int16_t)(set_point_roll * 100));
+    // sendData();
+  }
 
-  // --------------------------------------------------------------------------------------- //
-  // Roll and Pitch angles, accelerations
-
-  a_x = event.acceleration.x;
-  a_y = event.acceleration.y;
-  a_z = event.acceleration.z;
-
-  // roll = atan2(a_y, a_z) * 180.0 / PI;
-  // roll = roll + rollOffset;
-  // pitch = atan2(-a_x, sqrt(a_y * a_y + a_z * a_z)) * 180.0 / PI;
-  // pitch = pitch + pitchOffset;
-
-  float yaw = 0;
-
-  // --------------------------------------------------------------------------------------- //
-  // FIR
-
-  // --------------------------------------------------------------------------------------- //
-  // IIR
-
-  // xFiltrado = filtroIIR(a_x);
-  // yFiltrado = filtroIIR(a_y);
-  // zFiltrado = filtroIIR(a_z);
-
-  // xFiltrado = IIR(a_x, xFiltrado, amortecimento);
-  // yFiltrado = IIR(a_y, yFiltrado, amortecimento);
-  // zFiltrado = IIR(a_z, zFiltrado, amortecimento);
-
-  // --------------------------------------------------------------------------------------- //
-  // Move Mean
-
-  xFiltrado = MoveMean(a_x, xFiltrado);
-  yFiltrado = MoveMean(a_y, yFiltrado);
-  zFiltrado = MoveMean(a_z, zFiltrado);
-
-  // --------------------------------------------------------------------------------------- //
-  // print values
-
-  roll = atan2(yFiltrado, zFiltrado) * 180.0 / PI;
-  roll = roll + rollOffset;
-  pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
-  pitch = pitch + pitchOffset;
-
-  Serial.print(pitch);
-  Serial.print(";");
-  Serial.print(roll);
-  Serial.print(";");
-  Serial.print(set_point_pitch);
-  Serial.print(";");
-  Serial.println(set_point_roll);
-
-  // calcular taxa de amostragem
-  // unsigned long tempoAtual = millis();
-  //   if (tempoAtual - tempoAnterior >= INTERVALO_DE_AMOSTRAGEM) {
-  //       float taxaAmostragem = contadorAmostras / (float)(tempoAtual - tempoAnterior) * 1000;
-
-  //       Serial.print("Taxa de Amostragem: ");
-  //       Serial.print(taxaAmostragem);
-  //       Serial.println(" amostras por segundo");
-
-  //       contadorAmostras = 0;
-  //       tempoAnterior = tempoAtual;
-  //   }
-  //   contadorAmostras++;
+  // if (timeNow - rollStepTime > rollStepPeriod)
+  // {
+  //   rollStepTime = timeNow;
+  //   rollStep();
+  // }
+  // if (timeNow - pitchStepTime > pitchStepPeriod)
+  // {
+  //   pitchStepTime = timeNow;
+  //   pitchStep();
+  // }
 }
