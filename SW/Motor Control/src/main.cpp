@@ -85,7 +85,7 @@ const float ang_per_step = 1.8 / 32;
 // PID FF Gains
 float Kff = 0;
 float Kp = 0.8;
-float Ki = 0.1;
+float Ki = 0;
 float Kd = 0;
 
 // PID Vars
@@ -141,6 +141,7 @@ float pitchSpeed = 0;
 
 // UART Obj
 // HardwareSerial UART_0(0);
+float dataSend = 0;
 
 void SensorUpdate()
 {
@@ -181,42 +182,55 @@ void SensorUpdate()
 void rollStep()
 {
   // Roll Steps
-  if (RollNumOfSteps != 0)
+  timeNow = micros();
+  if (timeNow - rollStepTime > rollStepPeriod)
   {
-    digitalWrite(MOTOR_ROLL_DIR, RollMotorDirection);
-    digitalWrite(MOTOR_ROLL_STEP, RollStepState);
-    RollStepState = !RollStepState;
-    if (RollStepState && RollNumOfSteps > 0)
+    rollStepTime = timeNow;
+
+    if (RollNumOfSteps != 0)
     {
-      RollNumOfSteps--;
-    }
-    else
-    {
-      RollNumOfSteps++;
+      digitalWrite(MOTOR_ROLL_DIR, RollMotorDirection);
+      digitalWrite(MOTOR_ROLL_STEP, RollStepState);
+      RollStepState = !RollStepState;
+      if (RollStepState && RollNumOfSteps > 0)
+      {
+        RollNumOfSteps--;
+      }
+      else
+      {
+        RollNumOfSteps++;
+      }
     }
   }
 
-  timer1.attach_ms(rollStepPeriod, rollStep);
+  // timer1.attach_ms(rollStepPeriod, rollStep);
 }
 
 void pitchStep()
 {
   // Pitch Steps
-  if (PitchNumOfSteps != 0)
+  timeNow = micros();
+  if (timeNow - pitchStepTime > pitchStepPeriod)
   {
-    digitalWrite(MOTOR_PITCH_DIR, PitchMotorDirection);
-    digitalWrite(MOTOR_PITCH_STEP, PitchStepState);
-    PitchStepState = !PitchStepState;
-    if (PitchStepState && PitchNumOfSteps > 0)
+    pitchStepTime = timeNow;
+
+    if (PitchNumOfSteps != 0)
     {
-      PitchNumOfSteps--;
-    }
-    else
-    {
-      PitchNumOfSteps++;
+      digitalWrite(MOTOR_PITCH_DIR, PitchMotorDirection);
+      digitalWrite(MOTOR_PITCH_STEP, PitchStepState);
+      PitchStepState = !PitchStepState;
+      if (PitchStepState && PitchNumOfSteps > 0)
+      {
+        PitchNumOfSteps--;
+      }
+      else
+      {
+        PitchNumOfSteps++;
+      }
     }
   }
-  timer2.attach_ms(pitchStepPeriod, pitchStep);
+
+  // timer2.attach_ms(pitchStepPeriod, pitchStep);
 }
 
 void PID()
@@ -307,7 +321,7 @@ void PID()
   // Step period
   if (RollNumOfSteps != 0)
   {
-    rollStepPeriod = PID_Period / abs(RollNumOfSteps);
+    rollStepPeriod = PID_Period / abs(RollNumOfSteps) / 2;
   }
   else
   {
@@ -316,7 +330,7 @@ void PID()
 
   if (PitchNumOfSteps != 0)
   {
-    pitchStepPeriod = PID_Period / abs(PitchNumOfSteps);
+    pitchStepPeriod = PID_Period / abs(PitchNumOfSteps) / 2;
   }
   else
   {
@@ -343,8 +357,8 @@ void setup()
   pinMode(MOTOR_ROLL_DIR, OUTPUT);
   pinMode(MOTOR_ROLL_STEP, OUTPUT);
 
-  timer1.attach_ms(rollStepPeriod, rollStep);
-  timer2.attach_ms(pitchStepPeriod, pitchStep);
+  timer1.attach_ms(0.002, rollStep);
+  timer2.attach_ms(0.002, pitchStep);
 
   delay(1000);
 
@@ -396,11 +410,24 @@ void loop()
     lastTime = timeNow;
     SensorUpdate();
     PID();
-    Serial.write(0xAABB);
-    Serial.write((int16_t)(pitch * 100));
-    Serial.write((int16_t)(roll * 100));
-    Serial.write((int16_t)(set_point_pitch * 100));
-    Serial.write((int16_t)(set_point_roll * 100));
+
+    Serial.write(0xAB);
+
+    dataSend = pitch * 1000;
+    Serial.write(((int16_t)(dataSend)) >> 8);
+    Serial.write((int16_t)(dataSend));
+
+    dataSend = roll * 1000;
+    Serial.write(((int16_t)(dataSend)) >> 8);
+    Serial.write((int16_t)(dataSend));
+
+    dataSend = set_point_pitch * 1000;
+    Serial.write(((int16_t)(dataSend)) >> 8);
+    Serial.write((int16_t)(dataSend));
+
+    dataSend = set_point_roll * 1000;
+    Serial.write(((int16_t)(dataSend)) >> 8);
+    Serial.write((int16_t)(dataSend));
     // sendData();
   }
 
