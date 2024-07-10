@@ -338,13 +338,30 @@ void PID()
   }
 }
 
-void sendData()
+void processSerialCommand(String command)
 {
-  char buffer[100];
-  int length = snprintf(buffer, sizeof(buffer), "%.2f;%.2f;%d;%d\n", pitch, roll, set_point_pitch, set_point_roll);
-
-  // Enviar o buffer pela UART
-  Serial.write(buffer, length);
+  if (command.startsWith("SP;"))
+  {
+    // Comando de setpoint
+    sscanf(command.c_str(), "SP;%f;%f", &set_point_pitch, &set_point_roll);
+    Serial.print("Data update - ");
+    Serial.print(" Set Point Pitch:");
+    Serial.print(set_point_pitch);
+    Serial.print(" Set Point Roll:");
+    Serial.println(set_point_roll);
+  }
+  else if (command.startsWith("PID;"))
+  {
+    // Comando de ganhos PID
+    sscanf(command.c_str(), "PID;%f;%f;%f", &Kp, &Ki, &Kd);
+    Serial.print("Data update - ");
+    Serial.print(" Kp:");
+    Serial.print(Kp);
+    Serial.print(" Ki:");
+    Serial.print(Ki);
+    Serial.print(" Kd:");
+    Serial.println(Kd);
+  }
 }
 
 void setup()
@@ -375,34 +392,49 @@ void setup()
 
 void loop()
 {
+  static String receivedCommand = "";
 
-  if (Serial.available() > 0)
+  // Leitura de dados da serial
+  while (Serial.available() > 0)
   {
-    // set_point = Serial.parseFloat();
-    String inputString = Serial.readStringUntil('\n');
-    inputString.trim();
-    int separatorIndex = inputString.indexOf(';');
-
-    if (separatorIndex != -1)
+    char receivedChar = Serial.read();
+    if (receivedChar == '\n')
     {
-      String value1String = inputString.substring(0, separatorIndex);
-      String value2String = inputString.substring(separatorIndex + 1);
-
-      // Converte as strings para inteiros (ou floats, se necessário)
-      set_point_pitch = value1String.toFloat();
-      set_point_roll = value2String.toFloat();
+      processSerialCommand(receivedCommand);
+      receivedCommand = "";
     }
-
-    if (set_point_pitch > MAX_ANGLE)
-      set_point_pitch = MAX_ANGLE;
-    else if (set_point_pitch < MIN_ANGLE)
-      set_point_pitch = MIN_ANGLE;
-
-    if (set_point_roll > MAX_ANGLE)
-      set_point_roll = MAX_ANGLE;
-    else if (set_point_roll < MIN_ANGLE)
-      set_point_roll = MIN_ANGLE;
+    else
+    {
+      receivedCommand += receivedChar;
+    }
   }
+  // if (Serial.available() > 0)
+  // {
+  //   // set_point = Serial.parseFloat();
+  //   String inputString = Serial.readStringUntil('\n');
+  //   inputString.trim();
+  //   int separatorIndex = inputString.indexOf(';');
+
+  //   if (separatorIndex != -1)
+  //   {
+  //     String value1String = inputString.substring(0, separatorIndex);
+  //     String value2String = inputString.substring(separatorIndex + 1);
+
+  //     // Converte as strings para inteiros (ou floats, se necessário)
+  //     set_point_pitch = value1String.toFloat();
+  //     set_point_roll = value2String.toFloat();
+  //   }
+
+  //   if (set_point_pitch > MAX_ANGLE)
+  //     set_point_pitch = MAX_ANGLE;
+  //   else if (set_point_pitch < MIN_ANGLE)
+  //     set_point_pitch = MIN_ANGLE;
+
+  //   if (set_point_roll > MAX_ANGLE)
+  //     set_point_roll = MAX_ANGLE;
+  //   else if (set_point_roll < MIN_ANGLE)
+  //     set_point_roll = MIN_ANGLE;
+  // }
 
   timeNow = micros();
   if (timeNow - lastTime > PID_Period)
