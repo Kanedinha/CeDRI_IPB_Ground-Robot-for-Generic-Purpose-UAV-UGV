@@ -338,6 +338,27 @@ void PID()
   }
 }
 
+void DataSend()
+{
+  Serial.write(0xAB);
+
+  dataSend = pitch * 1000;
+  Serial.write(((int16_t)(dataSend)) >> 8);
+  Serial.write((int16_t)(dataSend));
+
+  dataSend = roll * 1000;
+  Serial.write(((int16_t)(dataSend)) >> 8);
+  Serial.write((int16_t)(dataSend));
+
+  dataSend = set_point_pitch * 1000;
+  Serial.write(((int16_t)(dataSend)) >> 8);
+  Serial.write((int16_t)(dataSend));
+
+  dataSend = set_point_roll * 1000;
+  Serial.write(((int16_t)(dataSend)) >> 8);
+  Serial.write((int16_t)(dataSend));
+}
+
 void processSerialCommand(String command)
 {
   if (command.startsWith("SP;"))
@@ -442,35 +463,6 @@ void loop()
     lastTime = timeNow;
     SensorUpdate();
     PID();
-
-    Serial.write(0xAB);
-
-    dataSend = pitch * 1000;
-    Serial.write(((int16_t)(dataSend)) >> 8);
-    Serial.write((int16_t)(dataSend));
-
-    dataSend = roll * 1000;
-    Serial.write(((int16_t)(dataSend)) >> 8);
-    Serial.write((int16_t)(dataSend));
-
-    dataSend = set_point_pitch * 1000;
-    Serial.write(((int16_t)(dataSend)) >> 8);
-    Serial.write((int16_t)(dataSend));
-
-    dataSend = set_point_roll * 1000;
-    Serial.write(((int16_t)(dataSend)) >> 8);
-    Serial.write((int16_t)(dataSend));
-    // sendData();
+    DataSend();
   }
-
-  // if (timeNow - rollStepTime > rollStepPeriod)
-  // {
-  //   rollStepTime = timeNow;
-  //   rollStep();
-  // }
-  // if (timeNow - pitchStepTime > pitchStepPeriod)
-  // {
-  //   pitchStepTime = timeNow;
-  //   pitchStep();
-  // }
 }
