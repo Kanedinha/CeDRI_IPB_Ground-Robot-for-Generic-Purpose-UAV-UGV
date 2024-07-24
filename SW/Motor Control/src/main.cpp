@@ -142,6 +142,8 @@ float pitchSpeed = 0;
 // UART Obj
 // HardwareSerial UART_0(0);
 float dataSend = 0;
+String receivedCommand = "";
+char receivedChar;
 
 void SensorUpdate()
 {
@@ -365,23 +367,23 @@ void processSerialCommand(String command)
   {
     // Comando de setpoint
     sscanf(command.c_str(), "SP;%f;%f", &set_point_pitch, &set_point_roll);
-    Serial.print("Data update - ");
-    Serial.print(" Set Point Pitch:");
-    Serial.print(set_point_pitch);
-    Serial.print(" Set Point Roll:");
-    Serial.println(set_point_roll);
+    // Serial.print("Data update - ");
+    // Serial.print(" Set Point Pitch:");
+    // Serial.print(set_point_pitch);
+    // Serial.print(" Set Point Roll:");
+    // Serial.println(set_point_roll);
   }
   else if (command.startsWith("PID;"))
   {
     // Comando de ganhos PID
     sscanf(command.c_str(), "PID;%f;%f;%f", &Kp, &Ki, &Kd);
-    Serial.print("Data update - ");
-    Serial.print(" Kp:");
-    Serial.print(Kp);
-    Serial.print(" Ki:");
-    Serial.print(Ki);
-    Serial.print(" Kd:");
-    Serial.println(Kd);
+    // Serial.print("Data update - ");
+    // Serial.print(" Kp:");
+    // Serial.print(Kp);
+    // Serial.print(" Ki:");
+    // Serial.print(Ki);
+    // Serial.print(" Kd:");
+    // Serial.println(Kd);
   }
 }
 
@@ -413,12 +415,11 @@ void setup()
 
 void loop()
 {
-  static String receivedCommand = "";
 
   // Leitura de dados da serial
   while (Serial.available() > 0)
   {
-    char receivedChar = Serial.read();
+    receivedChar = Serial.read();
     if (receivedChar == '\n')
     {
       processSerialCommand(receivedCommand);
