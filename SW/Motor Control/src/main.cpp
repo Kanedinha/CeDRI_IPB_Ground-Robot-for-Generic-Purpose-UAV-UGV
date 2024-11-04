@@ -78,8 +78,8 @@ uint8_t deadSteps = 0;
 #define SAMPLE_LENGHT 6
 
 // encoder vars
-#define MAX_ANGLE 30
-#define MIN_ANGLE -30
+#define MAX_ANGLE 20
+#define MIN_ANGLE -15
 const float ang_per_step = 1.8 / 32;
 
 // PID FF Gains
