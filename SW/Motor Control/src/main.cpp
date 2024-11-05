@@ -6,43 +6,7 @@
     e-mail: emerson.k.kaneda@gmail.com
             a61103@alunos.ipb.pt
 
-    acording with datasheet of the motor we have 64 counts per revolution
-    ON MOTOR SHAFT, and we have a reduction of 70:1, thus we need 4480 pulse
-    counts to have a full revolution on the final axis of the motor.
-
-    encoder table
-
-    Truth table for encoder state
-     0 -> stop
-     1 -> clockwise
-    -1 -> counter clockwise
-     ! -> error
-
-    actual - last (sig_a | sig_b | sig_ant_a | sig_ant_b)
-    0 0 0 0 |  0
-    0 0 0 1 | -1
-    0 0 1 0 |  1
-    0 0 1 1 |  !
-    0 1 0 0 |  1
-    0 1 0 1 |  0
-    0 1 1 0 |  !
-    0 1 1 1 | -1
-    1 0 0 0 | -1
-    1 0 0 1 |  !
-    1 0 1 0 |  0
-    1 0 1 1 |  1
-    1 1 0 0 |  !
-    1 1 0 1 |  1
-    1 1 1 0 | -1
-    1 1 1 1 |  0
-
-
-pulses 5760 -> 360º
-
 10 ms de timer pro PID
-
-counter clock wise h_ccw = 36 (37 roda começa a rodar sempre)
-clock wise h_cw = 51 (52 começa a rodar sempre)
 */
 
 #include <Arduino.h>
@@ -160,18 +124,6 @@ void SensorUpdate()
   pitch = atan2(-xFiltrado, sqrt(yFiltrado * yFiltrado + zFiltrado * zFiltrado)) * 180.0 / PI;
   pitch = pitch + pitchOffset;
 
-  // ---------------------------------------IIR--------------------------------------------- //
-  // xFiltrado = filtroIIR(a_x);
-  // yFiltrado = filtroIIR(a_y);
-  // zFiltrado = filtroIIR(a_z);
-  // xFiltrado = IIR(a_x, xFiltrado, amortecimento);
-  // yFiltrado = IIR(a_y, yFiltrado, amortecimento);
-  // zFiltrado = IIR(a_z, zFiltrado, amortecimento);
-
-  // ------------------------------------Move Mean------------------------------------------ //
-  // xFiltrado = MoveMean(a_x, xFiltrado);
-  // yFiltrado = MoveMean(a_y, yFiltrado);
-  // zFiltrado = MoveMean(a_z, zFiltrado);
 
   // Angular Speed calc
   rollSpeed = (roll - lastRoll) / PID_Period;
@@ -204,8 +156,6 @@ void rollStep()
       }
     }
   }
-
-  // timer1.attach_ms(rollStepPeriod, rollStep);
 }
 
 void pitchStep()
@@ -231,8 +181,6 @@ void pitchStep()
       }
     }
   }
-
-  // timer2.attach_ms(pitchStepPeriod, pitchStep);
 }
 
 void PID()
@@ -367,29 +315,16 @@ void processSerialCommand(String command)
   {
     // Comando de setpoint
     sscanf(command.c_str(), "SP;%f;%f", &set_point_pitch, &set_point_roll);
-    // Serial.print("Data update - ");
-    // Serial.print(" Set Point Pitch:");
-    // Serial.print(set_point_pitch);
-    // Serial.print(" Set Point Roll:");
-    // Serial.println(set_point_roll);
   }
   else if (command.startsWith("PID;"))
   {
     // Comando de ganhos PID
     sscanf(command.c_str(), "PID;%f;%f;%f", &Kp, &Ki, &Kd);
-    // Serial.print("Data update - ");
-    // Serial.print(" Kp:");
-    // Serial.print(Kp);
-    // Serial.print(" Ki:");
-    // Serial.print(Ki);
-    // Serial.print(" Kd:");
-    // Serial.println(Kd);
   }
 }
 
 void setup()
 {
-  // UART_0.begin(9600);
   Serial.begin(9600);
 
   pinMode(MOTOR_PITCH_DIR, OUTPUT);
@@ -404,13 +339,11 @@ void setup()
 
   if (!accel.begin())
   {
-    // UART_0.write("O sensor ADXL345 não foi detectado");
     Serial.println("O sensor ADXL345 não foi detectado");
     while (1)
       ;
   }
   accel.setRange(ADXL345_RANGE_16_G);
-  // backward(set_point * Kff);
 }
 
 void loop()
@@ -430,33 +363,6 @@ void loop()
       receivedCommand += receivedChar;
     }
   }
-  // if (Serial.available() > 0)
-  // {
-  //   // set_point = Serial.parseFloat();
-  //   String inputString = Serial.readStringUntil('\n');
-  //   inputString.trim();
-  //   int separatorIndex = inputString.indexOf(';');
-
-  //   if (separatorIndex != -1)
-  //   {
-  //     String value1String = inputString.substring(0, separatorIndex);
-  //     String value2String = inputString.substring(separatorIndex + 1);
-
-  //     // Converte as strings para inteiros (ou floats, se necessário)
-  //     set_point_pitch = value1String.toFloat();
-  //     set_point_roll = value2String.toFloat();
-  //   }
-
-  //   if (set_point_pitch > MAX_ANGLE)
-  //     set_point_pitch = MAX_ANGLE;
-  //   else if (set_point_pitch < MIN_ANGLE)
-  //     set_point_pitch = MIN_ANGLE;
-
-  //   if (set_point_roll > MAX_ANGLE)
-  //     set_point_roll = MAX_ANGLE;
-  //   else if (set_point_roll < MIN_ANGLE)
-  //     set_point_roll = MIN_ANGLE;
-  // }
 
   timeNow = micros();
   if (timeNow - lastTime > PID_Period)

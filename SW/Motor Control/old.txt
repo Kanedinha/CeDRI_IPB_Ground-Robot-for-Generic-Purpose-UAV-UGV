@@ -1,0 +1,45 @@
+  // if (Serial.available() > 0)
+  // {
+  //   // set_point = Serial.parseFloat();
+  //   String inputString = Serial.readStringUntil('\n');
+  //   inputString.trim();
+  //   int separatorIndex = inputString.indexOf(';');
+
+  //   if (separatorIndex != -1)
+  //   {
+  //     String value1String = inputString.substring(0, separatorIndex);
+  //     String value2String = inputString.substring(separatorIndex + 1);
+
+  //     // Converte as strings para inteiros (ou floats, se necessário)
+  //     set_point_pitch = value1String.toFloat();
+  //     set_point_roll = value2String.toFloat();
+  //   }
+
+  //   if (set_point_pitch > MAX_ANGLE)
+  //     set_point_pitch = MAX_ANGLE;
+  //   else if (set_point_pitch < MIN_ANGLE)
+  //     set_point_pitch = MIN_ANGLE;
+
+  //   if (set_point_roll > MAX_ANGLE)
+  //     set_point_roll = MAX_ANGLE;
+  //   else if (set_point_roll < MIN_ANGLE)
+  //     set_point_roll = MIN_ANGLE;
+  // }
+
+
+----------------------
+
+
+  // ---------------------------------------IIR--------------------------------------------- //
+  // xFiltrado = filtroIIR(a_x);
+  // yFiltrado = filtroIIR(a_y);
+  // zFiltrado = filtroIIR(a_z);
+  // xFiltrado = IIR(a_x, xFiltrado, amortecimento);
+  // yFiltrado = IIR(a_y, yFiltrado, amortecimento);
+  // zFiltrado = IIR(a_z, zFiltrado, amortecimento);
+
+  // ------------------------------------Move Mean------------------------------------------ //
+  // xFiltrado = MoveMean(a_x, xFiltrado);
+  // yFiltrado = MoveMean(a_y, yFiltrado);
+  // zFiltrado = MoveMean(a_z, zFiltrado);
+
