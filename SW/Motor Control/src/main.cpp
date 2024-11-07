@@ -50,7 +50,7 @@ const float ang_per_step = 1.8 / 32;
 float Kff = 0;
 float Kp = 0.8;
 float Ki = 0;
-float Kd = 0;
+float Kd = 0.5;
 
 // PID Vars
 float previous_error = 0;
