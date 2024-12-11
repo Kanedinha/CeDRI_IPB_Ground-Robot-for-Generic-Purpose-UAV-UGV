@@ -49,8 +49,8 @@ const float ang_per_step = 1.8 / 32;
 // PID FF Gains
 float Kff = 0;
 float Kp = 0.8;
-float Ki = 0.5;
-float Kd = 0.1;
+float Ki = 0;
+float Kd = 0;
 
 // PID Vars
 float previous_error = 0;
