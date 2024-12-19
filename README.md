@@ -2,4 +2,4 @@
 
 Project for Master Degree Thesis
 
-![2 DoF Platform](Tese/Article/Platform Reference.jpeg)
+<img src="Tese/Article/Platform Reference.jpeg">
