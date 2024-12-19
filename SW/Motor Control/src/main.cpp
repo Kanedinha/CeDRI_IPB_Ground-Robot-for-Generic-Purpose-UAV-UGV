@@ -1,12 +1,11 @@
 /*
-    CeDRI Project - Grounded Robot with Two Dimensional Platform Self
-                    Stabilizer for UAV-UGV coordenation.
+    CeDRI Project - TWO-DEGREE-OF-FREEDOM PLAFORM AS A TOOL FOR 
+                    COOPERATION BETWEEN MOBILE ROBOTS AND UAVs.
 
     Author: Emerson Kazuyoshi Kaneda
     e-mail: emerson.k.kaneda@gmail.com
             a61103@alunos.ipb.pt
 
-10 ms de timer pro PID
 */
 
 #include <Arduino.h>
@@ -16,10 +15,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_ADXL345_U.h>
 #include <math.h>
-#include <Adafruit_MPU6050.h>
 #include "MoveMean.h"
-#include "IIR_filter.h"
-#include <ESP32Servo.h>
 #include <HardwareSerial.h>
 
 // motor defines
@@ -41,14 +37,16 @@ uint8_t deadSteps = 0;
 #define DEVICE 0x53
 #define SAMPLE_LENGHT 6
 
-// encoder vars
+// step vars
 #define MAX_ANGLE 20
 #define MIN_ANGLE -15
-const float ang_per_step = 1.8 / 32;
+#define MICRO_STEP 32
+#define GEAR_BOX_REDUCTION 5.18
+float ang_per_step = 1.8 / MICRO_STEP / GEAR_BOX_REDUCTION;
 
 // PID FF Gains
 float Kff = 0;
-float Kp = 0.8;
+float Kp = 0.1;
 float Ki = 0;
 float Kd = 0;
 
@@ -79,12 +77,9 @@ long double pitchStepTime = 0;
 uint16_t pitchStepPeriod = 5000;
 uint16_t PID_Period = 10000; // microsseconds
 
-// MPU object and vars
-Adafruit_MPU6050 mpu1;
-sensors_event_t event;
-
 // ADXL345 object and vars
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
+sensors_event_t event;
 
 float a_x = 0;
 float a_y = 0;
@@ -206,6 +201,7 @@ void PID()
   PitchDerivativeError = PitchStepsError - LastPitchStepsError;
   PitchIntegralError += PitchStepsError;
 
+  // limit of integrator
   if (PitchIntegralError > int16_t(MAX_ANGLE / ang_per_step))
   {
     PitchIntegralError = int16_t(MAX_ANGLE / ang_per_step);
@@ -237,6 +233,8 @@ void PID()
   RollStepsError = int16_t(RollError / ang_per_step);
   RollDerivativeError = RollStepsError - LastRollStepsError;
   RollIntegralError += RollStepsError;
+
+  // limiting integrator
   if (RollIntegralError > int16_t(MAX_ANGLE / ang_per_step))
   {
     RollIntegralError = int16_t(MAX_ANGLE / ang_per_step);
